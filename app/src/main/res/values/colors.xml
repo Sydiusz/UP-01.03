@@ -15,4 +15,5 @@
     <color name="Block">#FFFFFFFF</color>
     <color name="hint">#FF6A6A6A</color>
     <color name="text">#FF2B2B2B</color>
+    <color name="subtextdark">#FF707B81</color>
 </resources>
