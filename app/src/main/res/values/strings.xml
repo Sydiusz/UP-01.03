@@ -15,9 +15,9 @@
     <string name="name">Your Name</string>
     <string name="agree">I agree to the processing of personal data</string>
     <string name="sign_up">Sign up</string>
-    <string name="sign_in">Sign in</string>
+    <string name="sign_in"> Sign in</string>
     <string name="new_user">New User? Create Account</string>
-    <string name="have_acc">Already Have Account? Log In</string>
+    <string name="have_acc">Already Have Account?</string>
 
 
 </resources>
