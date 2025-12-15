@@ -71,4 +71,5 @@
     <string name="map">карта</string>
     <string name="loyalty_card">карта лояльности</string>
     <string name="create">Создать пользователя</string>
+    <string name="cancel">Отмена</string>
 </resources>

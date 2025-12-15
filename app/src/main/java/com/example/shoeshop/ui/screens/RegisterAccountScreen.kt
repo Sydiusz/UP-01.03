@@ -25,15 +25,16 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.core.content.edit
 import com.example.myfirstproject.data.model.SignUpRequest
 import com.example.shoeshop.R
-import com.example.myfirstproject.data.model.SignInRequest
+import com.example.shoeshop.ui.components.AlertDialogWithTwoButtons
 import com.example.shoeshop.ui.components.BackButton
 import com.example.shoeshop.ui.components.DisableButton
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.SignUpViewModel
 import com.example.shoeshop.ui.viewmodel.SignUpState
-import androidx.core.content.edit
+import kotlinx.coroutines.launch
 
 @Composable
 fun RegisterAccountScreen(
@@ -48,8 +49,12 @@ fun RegisterAccountScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var isChecked by remember { mutableStateOf(false) }
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    var pendingSignUpRequest by remember { mutableStateOf<SignUpRequest?>(null) }
 
     val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
     val signUpState by viewModel.signUpState.collectAsStateWithLifecycle()
 
     // Получаем SharedPreferences как в вашем коде
@@ -67,13 +72,53 @@ fun RegisterAccountScreen(
                 viewModel.resetState()
             }
             is SignUpState.Error -> {
-                val errorMessage = (signUpState as SignUpState.Error).message
-                android.widget.Toast.makeText(context, errorMessage, android.widget.Toast.LENGTH_LONG).show()
+                val error = (signUpState as SignUpState.Error)
+                errorMessage = error.message
+
+                // Показываем диалог только для определенных ошибок
+                val showDialog = when {
+                    error.message.contains("Too many requests", ignoreCase = true) -> true
+                    error.message.contains("rate limit", ignoreCase = true) -> true
+                    error.message.contains("network", ignoreCase = true) -> true
+                    error.message.contains("invalid", ignoreCase = true) -> true
+                    else -> true
+                }
+
+                if (showDialog) {
+                    showErrorDialog = true
+                } else {
+                    // Для других ошибок можно показать Snackbar или Toast
+                    // например, для ошибок валидации
+                }
                 viewModel.resetState()
             }
             else -> {}
         }
     }
+
+    // Диалог для ошибок
+    AlertDialogWithTwoButtons(
+        showDialog = showErrorDialog,
+        onDismissRequest = {
+            showErrorDialog = false
+            errorMessage = ""
+        },
+        onConfirm = {
+            // При нажатии Отмена - просто закрываем диалог
+            showErrorDialog = false
+            errorMessage = ""
+            pendingSignUpRequest = null
+        },
+        onCancel = {
+            // При нажатии Отмена - просто закрываем диалог
+            showErrorDialog = false
+            errorMessage = ""
+            pendingSignUpRequest = null
+        },
+        title = stringResource(R.string.details),
+        message = errorMessage,
+        cancelButtonText = stringResource(R.string.cancel),
+    )
 
     // Используем цвета из темы
     val hintColor = MaterialTheme.colorScheme.onSurfaceVariant
@@ -308,14 +353,19 @@ fun RegisterAccountScreen(
             text = stringResource(id = R.string.sign_up),
             onClick = {
                 if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && isChecked) {
-                    // Используем SignUpRequest из примера
-                    viewModel.signUp(SignUpRequest(email, password))
+                    val signUpRequest = SignUpRequest(email, password)
+                    pendingSignUpRequest = signUpRequest
+                    viewModel.signUp(signUpRequest)
                 } else {
-                    android.widget.Toast.makeText(
-                        context,
-                        "Please fill in all fields and accept the agreement",
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
+                    // Валидация полей
+                    errorMessage = when {
+                        name.isEmpty() -> "Please enter your name"
+                        email.isEmpty() -> "Please enter your email address"
+                        password.isEmpty() -> "Please enter your password"
+                        !isChecked -> "Please accept the terms and conditions"
+                        else -> "Please fill in all required fields"
+                    }
+                    showErrorDialog = true
                 }
             },
             enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && isChecked,
