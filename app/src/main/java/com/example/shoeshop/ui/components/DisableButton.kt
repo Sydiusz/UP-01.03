@@ -10,42 +10,38 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.shoeshop.R
+import com.example.shoeshop.ui.theme.AppTypography
 
+// DisableButton.kt
 @Composable
 fun DisableButton(
     text: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
     enabled: Boolean = true,
-    backgroundColor: Color = colorResource(id = R.color.accent),
-    backgroundColordis: Color = colorResource(id = R.color.disable),
-    textColor: Color = Color.White
+    modifier: Modifier = Modifier,
+    textStyle: TextStyle = AppTypography.bodyRegular14 // Добавляем параметр стиля
 ) {
     Button(
         onClick = onClick,
+        enabled = enabled,
         modifier = modifier
             .fillMaxWidth()
-            .height(56.dp),
-        enabled = enabled,
+            .height(48.dp),
+        shape = MaterialTheme.shapes.medium,
         colors = ButtonDefaults.buttonColors(
-            containerColor = backgroundColor,
-            contentColor = textColor,
-            disabledContainerColor = backgroundColordis,
-            disabledContentColor = textColor
-        ),
-        shape = MaterialTheme.shapes.large,
-        elevation = ButtonDefaults.buttonElevation(
-            defaultElevation = 0.dp
+            containerColor = MaterialTheme.colorScheme.primary,
+            disabledContainerColor = MaterialTheme.colorScheme.secondary,
+            contentColor = MaterialTheme.colorScheme.background,
+            disabledContentColor = MaterialTheme.colorScheme.background
         )
     ) {
         Text(
             text = text,
-            style = MaterialTheme.typography.titleMedium.copy(
-                fontWeight = FontWeight.Medium
-            )
+            style = textStyle // Используем переданный стиль
         )
     }
 }

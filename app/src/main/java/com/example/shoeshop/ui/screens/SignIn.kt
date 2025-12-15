@@ -1,6 +1,5 @@
 package com.example.shoeshop.ui.screens
 
-import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
@@ -12,7 +11,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -23,72 +21,42 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.myfirstproject.data.model.SignUpRequest
 import com.example.shoeshop.R
-import com.example.myfirstproject.data.model.SignInRequest
 import com.example.shoeshop.ui.components.BackButton
 import com.example.shoeshop.ui.components.DisableButton
 import com.example.shoeshop.ui.theme.AppTypography
-import com.example.shoeshop.ui.viewmodel.SignUpViewModel
-import com.example.shoeshop.ui.viewmodel.SignUpState
-import androidx.core.content.edit
+import com.example.shoeshop.ui.theme.ShoeShopTheme
 
 @Composable
-fun RegisterAccountScreen(
+fun SignInScreen(
     modifier: Modifier = Modifier,
-    onBackClick: () -> Unit = {},
-    onSignInClick: () -> Unit,
-    onSignUpClick: () -> Unit,
-    viewModel: SignUpViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    onForgotPasswordClick : () -> Unit = {} ,
+    onSignInClick : () -> Unit = {} ,
+    onSignUpClick : () -> Unit = {}
 ) {
-    var name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var isChecked by remember { mutableStateOf(false) }
 
-    val context = LocalContext.current
-    val signUpState by viewModel.signUpState.collectAsStateWithLifecycle()
-
-    // Получаем SharedPreferences как в вашем коде
-    val sharedPreferences = remember {
-        context.getSharedPreferences("shoe_shop_prefs", Context.MODE_PRIVATE)
-    }
-
-    // Обработка состояний регистрации
-    LaunchedEffect(signUpState) {
-        when (signUpState) {
-            is SignUpState.Success -> {
-                // Сохраняем данные при успешной регистрации
-                saveUserDataToPreferences(sharedPreferences, name, email)
-                onSignUpClick()
-                viewModel.resetState()
-            }
-            is SignUpState.Error -> {
-                val errorMessage = (signUpState as SignUpState.Error).message
-                android.widget.Toast.makeText(context, errorMessage, android.widget.Toast.LENGTH_LONG).show()
-                viewModel.resetState()
-            }
-            else -> {}
-        }
-    }
+    val isFormValid =
+            email.isNotBlank() &&
+            password.isNotBlank()
 
     // Используем цвета из темы
     val hintColor = MaterialTheme.colorScheme.onSurfaceVariant
     val borderColor = MaterialTheme.colorScheme.outline
-    val checkboxBorderColor = MaterialTheme.colorScheme.outlineVariant
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .padding(23.dp)
-            .background(MaterialTheme.colorScheme.background),
+            .background(Color.White),
         verticalArrangement = Arrangement.Center,
     ) {
         BackButton(
-            onClick = onBackClick
+            onClick = {}
         )
 
         Column(
@@ -96,58 +64,22 @@ fun RegisterAccountScreen(
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Text(
-                text = stringResource(id = R.string.register),
+                text = stringResource(id = R.string.hello),
                 style = AppTypography.headingRegular32,
                 color = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
+            // Используем bodyRegular14 вместо bodyMedium
             Text(
                 text = stringResource(id = R.string.details),
                 style = AppTypography.subtitleRegular16,
                 color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(bottom = 40.dp)
+                modifier = Modifier.padding(bottom = 54.dp)
             )
         }
 
-        // Поле "Имя"
-        Text(
-            text = stringResource(id = R.string.name),
-            style = AppTypography.bodyMedium16.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier.padding(bottom = 8.dp)
-        )
-
-        OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            placeholder = {
-                Text(
-                    "xxxxxxxx",
-                    style = AppTypography.bodyRegular14,
-                    color = hintColor
-                )
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 20.dp),
-            shape = MaterialTheme.shapes.medium,
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = borderColor,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = hintColor,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                cursorColor = MaterialTheme.colorScheme.primary,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedPlaceholderColor = hintColor,
-                unfocusedPlaceholderColor = hintColor
-            ),
-            textStyle = AppTypography.bodyRegular16,
-            singleLine = true
-        )
-
-        // Поле "Email"
+        // Поле "Email" - используем bodyMedium14 для метки
         Text(
             text = stringResource(id = R.string.email),
             style = AppTypography.bodyMedium16.copy(fontWeight = FontWeight.Medium),
@@ -181,11 +113,11 @@ fun RegisterAccountScreen(
                 focusedPlaceholderColor = hintColor,
                 unfocusedPlaceholderColor = hintColor
             ),
-            textStyle = AppTypography.bodyRegular16,
+            textStyle = AppTypography.bodyRegular16, // Body Regular 16 для ввода текста
             singleLine = true
         )
 
-        // Поле "Пароль"
+        // Поле "Пароль" - используем bodyMedium14 для метки
         Text(
             text = stringResource(id = R.string.pass),
             style = AppTypography.bodyMedium16.copy(fontWeight = FontWeight.Medium),
@@ -210,8 +142,7 @@ fun RegisterAccountScreen(
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 20.dp),
+                .fillMaxWidth(),
             shape = MaterialTheme.shapes.medium,
             colors = OutlinedTextFieldDefaults.colors(
                 unfocusedBorderColor = borderColor,
@@ -224,7 +155,7 @@ fun RegisterAccountScreen(
                 focusedPlaceholderColor = hintColor,
                 unfocusedPlaceholderColor = hintColor
             ),
-            textStyle = AppTypography.bodyRegular16,
+            textStyle = AppTypography.bodyRegular16, // Body Regular 16 для ввода текста
             singleLine = true,
             trailingIcon = {
                 IconButton(
@@ -248,78 +179,25 @@ fun RegisterAccountScreen(
                 }
             }
         )
-
-        // Чекбокс с пользовательским соглашением
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(24.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .selectable(
-                        selected = isChecked,
-                        onClick = { isChecked = !isChecked },
-                        role = Role.Checkbox
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(MaterialTheme.shapes.small)
-                        .border(
-                            width = 2.dp,
-                            color = if (isChecked) MaterialTheme.colorScheme.primary else checkboxBorderColor,
-                            shape = MaterialTheme.shapes.small
-                        )
-                        .background(
-                            if (isChecked) MaterialTheme.colorScheme.primary else Color.Transparent
-                        )
-                )
-
-                if (isChecked) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.policy_check),
-                        contentDescription = "Выбрано",
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onPrimary
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.width(12.dp))
-
+        Row(modifier = Modifier
+            .fillMaxWidth(),
+            horizontalArrangement = Arrangement.End)
+        {
             Text(
-                text = stringResource(id = R.string.agree),
-                style = AppTypography.bodyRegular14,
-                color = hintColor,
-                modifier = Modifier.weight(1f)
-            )
-        }
+            text = stringResource(id = R.string.recovery),
+            style = AppTypography.bodyRegular12,
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(top = 12.dp),
+        )}
 
         Spacer(modifier = Modifier.height(24.dp))
 
         // Кнопка регистрации
         DisableButton(
-            text = stringResource(id = R.string.sign_up),
-            onClick = {
-                if (name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && isChecked) {
-                    // Используем SignUpRequest из примера
-                    viewModel.signUp(SignUpRequest(email, password))
-                } else {
-                    android.widget.Toast.makeText(
-                        context,
-                        "Please fill in all fields and accept the agreement",
-                        android.widget.Toast.LENGTH_LONG
-                    ).show()
-                }
-            },
-            enabled = name.isNotEmpty() && email.isNotEmpty() && password.isNotEmpty() && isChecked,
-            textStyle = AppTypography.bodyMedium16
+            text = stringResource(id = R.string.sign_in),
+            onClick = onSignInClick,
+            enabled = isFormValid,
+            textStyle = AppTypography.bodyMedium16 // Body Medium 16 для текста кнопки
         )
 
         Spacer(modifier = Modifier.weight(1f))
@@ -330,7 +208,7 @@ fun RegisterAccountScreen(
             horizontalArrangement = Arrangement.Center
         ) {
             TextButton(
-                onClick = onSignInClick,
+                onClick = onSignUpClick,
                 contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
             ) {
                 Text(
@@ -342,7 +220,7 @@ fun RegisterAccountScreen(
                                 fontSize = AppTypography.bodyRegular16.fontSize
                             )
                         ) {
-                            append(stringResource(id = R.string.have_acc))
+                            append(stringResource(id = R.string.new_user))
                         }
                         append(" ")
                         withStyle(
@@ -352,7 +230,7 @@ fun RegisterAccountScreen(
                                 fontSize = AppTypography.bodyRegular16.fontSize,
                             )
                         ) {
-                            append(stringResource(id = R.string.sign_in))
+                            append(stringResource(id = R.string.create))
                         }
                     }
                 )
@@ -361,13 +239,10 @@ fun RegisterAccountScreen(
     }
 }
 
-private fun saveUserDataToPreferences(
-    sharedPreferences: android.content.SharedPreferences,
-    name: String,
-    email: String
-) {
-    sharedPreferences.edit {
-        putString("user_name", name)
-        putString("user_email", email)
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun SignInScreenScreenPreview() {
+    ShoeShopTheme {
+        SignInScreen()
     }
 }
