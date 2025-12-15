@@ -1,3 +1,23 @@
 <resources>
     <string name="app_name">ShoeShop</string>
+    <string name="welcome">Wellcome</string>
+    <string name="journey">Let’s Start Journey </string>
+    <string name="smart">Smart, Gorgeous &amp; Fashionable Collection Explor Now</string>
+    <string name="power">You Have the Power To</string>
+    <string name="beatiful">There Are Many Beautiful And Attractive Plants To Your Room</string>
+    <string name="hello">Hello Again!</string>
+    <string name="details">Fill your details</string>
+    <string name="email">Email Address</string>
+    <string name="pass">Password</string>
+    <string name="start">Start</string>
+    <string name="next">Next</string>
+    <string name="register">Register Account</string>
+    <string name="name">Your Name</string>
+    <string name="agree">I agree to the processing of personal data</string>
+    <string name="sign_up">Sign up</string>
+    <string name="sign_in">Sign in</string>
+    <string name="new_user">New User? Create Account</string>
+    <string name="have_acc">Already Have Account? Log In</string>
+
+
 </resources>

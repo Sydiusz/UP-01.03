@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ShoeShop</string>
+    <string name="welcome">Добро пожаловать</string>
+    <string name="journey">Начнем путешествие</string>
+    <string name="smart">Умная, великолепная и модная коллекция Изучите сейчас</string>
+    <string name="power">У вас есть сила, чтобы</string>
+    <string name="beatiful">В вашей комнате много красивых и привлекательных растений</string>
+    <string name="hello">Привет!</string>
+    <string name="details">Заполните Свои данные</string>
+    <string name="email">Email</string>
+    <string name="pass">Пароль</string>
+    <string name="start">Начать</string>
+    <string name="next">Далее</string>
+    <string name="register">Регистрация</string>
+    <string name="name">Ваше имя</string>
+    <string name="agree">Даю согласие на обработку персональных данных</string>
+    <string name="sign_up">Зарегистрироваться</string>
+    <string name="sign_in">Войти</string>
+    <string name="new_user">Вы впервые? Создать пользователя</string>
+    <string name="have_acc">Есть аккаунт? Войти</string>
+</resources>
