@@ -1,6 +1,7 @@
 package com.example.shoeshop.data.navigation
 
 import EmailVerificationScreen
+import RecoveryVerificationScreen
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -36,10 +37,13 @@ fun NavigationApp(navController: NavHostController) {
                 onVerificationSuccess = { navController.navigate("home") }
             )
         }
-
+        composable("reset_password") {
+            RecoveryVerificationScreen({},{}
+            )
+        }
         composable("forgot_password") {
             ForgotPasswordScreen(
-                onNavigateToOtpVerification = { navController.navigate("sign_in") },
+                onNavigateToOtpVerification = { navController.navigate("reset_password") },
             )
         }
 

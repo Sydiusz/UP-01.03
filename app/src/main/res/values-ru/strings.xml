@@ -29,7 +29,7 @@
     <string name="check_email_for_code">Пожалуйста, проверьте свою электронную почту, чтобы увидеть код подтверждения</string>
     <string name="otp_code">OTP Код</string>
     <string name="set_new_password">задать новый пароль</string>
-    <string name="set_password_description">установите новый пароль для входа в вашу учетную запись</string>
+    <string name="set_password_description">Установите новый пароль для входа в вашу учетную запись</string>
     <string name="confirm_password">подтверждение пароля</string>
     <string name="home">Главная</string>
     <string name="search">Поиск</string>
