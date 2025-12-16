@@ -15,6 +15,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.rememberNavController
 import com.example.shoeshop.data.navigation.NavigationApp
 import com.example.shoeshop.ui.screens.CreateNewPasswordScreen
+import com.example.shoeshop.ui.screens.OnboardScreen
 import com.example.shoeshop.ui.screens.RegisterAccountScreen
 import com.example.shoeshop.ui.theme.ShoeShopTheme
 
