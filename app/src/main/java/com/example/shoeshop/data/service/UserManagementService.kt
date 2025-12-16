@@ -7,6 +7,7 @@ import com.example.myfirstproject.data.model.SignUpRequest
 import com.example.myfirstproject.data.model.SignUpResponse
 import com.example.myfirstproject.data.model.VerifyOtpRequest
 import com.example.myfirstproject.data.model.VerifyOtpResponse
+import com.example.myfirstproject.data.model.VerifyRecoveryResponse
 import com.example.shoeshop.data.model.ChangePasswordRequest
 import com.example.shoeshop.data.model.ChangePasswordResponse
 import com.example.shoeshop.data.model.ForgotPasswordRequest
@@ -42,7 +43,8 @@ interface UserManagementService {
     )
     @POST("auth/v1/verify")
     suspend fun verifyOtp(@Body verifyOtpRequest: VerifyOtpRequest): Response<VerifyOtpResponse>
-
+    @POST("auth/verify-recovery-otp")
+    suspend fun verifyRecoveryOtp(@Body request: VerifyOtpRequest): Response<VerifyRecoveryResponse>
 
     @Headers(
         "apikey: $API_KEY",

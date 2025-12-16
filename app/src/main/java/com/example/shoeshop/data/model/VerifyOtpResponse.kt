@@ -1,4 +1,3 @@
-// VerifyOtpResponse.kt  
 package com.example.myfirstproject.data.model
 
 data class VerifyOtpResponse(

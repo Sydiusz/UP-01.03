@@ -16,9 +16,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.*
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.input.*
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -29,12 +30,14 @@ import com.example.shoeshop.R
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.EmailVerificationViewModel
 import com.example.shoeshop.ui.viewmodel.VerificationState
+import com.example.shoeshop.ui.viewmodel.OtpType
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun RecoveryVerificationScreen(
     onSignInClick: () -> Unit,
-    onVerificationSuccess: () -> Unit,
+    onResetPasswordClick: (resetToken: String) -> Unit, // Изменено: теперь передаем reset token
     viewModel: EmailVerificationViewModel = viewModel()
 ) {
     var otpCode by remember { mutableStateOf("") }
@@ -43,6 +46,7 @@ fun RecoveryVerificationScreen(
     val verificationState by viewModel.verificationState.collectAsStateWithLifecycle()
     val focusManager = LocalFocusManager.current
     val keyboardController = LocalSoftwareKeyboardController.current
+    val scope = rememberCoroutineScope()
 
     // Для управления фокусом на каждом OTP поле
     val focusRequester1 = remember { FocusRequester() }
@@ -59,6 +63,8 @@ fun RecoveryVerificationScreen(
 
     LaunchedEffect(Unit) {
         userEmail = getUserEmail(context)
+        // Запрашиваем фокус на первом поле при запуске
+        focusRequester1.requestFocus()
     }
 
     // Автоматическая проверка при вводе 6 цифр
@@ -68,15 +74,11 @@ fun RecoveryVerificationScreen(
             keyboardController?.hide()
             focusManager.clearFocus()
 
-            // Проверяем OTP
+            // Проверяем Recovery OTP
             if (userEmail.isNotEmpty()) {
-                viewModel.verifyOtp(userEmail, otpCode)
+                viewModel.verifyRecoveryOtp(userEmail, otpCode) // Используем recovery метод
             } else {
-                android.widget.Toast.makeText(
-                    context,
-                    "Email не найден. Пожалуйста, введите email снова",
-                    android.widget.Toast.LENGTH_LONG
-                ).show()
+                showToast(context, "Email не найден. Пожалуйста, введите email снова")
             }
         }
     }
@@ -85,15 +87,31 @@ fun RecoveryVerificationScreen(
     LaunchedEffect(verificationState) {
         when (verificationState) {
             is VerificationState.Success -> {
-                onVerificationSuccess()
-                viewModel.resetState()
+                when ((verificationState as VerificationState.Success).type) {
+                    OtpType.RECOVERY -> {
+                        // Получаем reset token и переходим на экран сброса пароля
+                        val resetToken = viewModel.getResetToken()
+                        if (!resetToken.isNullOrEmpty()) {
+                            onResetPasswordClick(resetToken)
+                        } else {
+                            showToast(context, "Ошибка: токен сброса не получен")
+                        }
+                        viewModel.resetState()
+                    }
+                    OtpType.EMAIL -> {
+                        // Не должно происходить в этом экране
+                        showToast(context, "Неправильный тип OTP")
+                    }
+                }
             }
             is VerificationState.Error -> {
                 val errorMessage = (verificationState as VerificationState.Error).message
-                android.widget.Toast.makeText(context, errorMessage, android.widget.Toast.LENGTH_LONG).show()
+                showToast(context, errorMessage)
                 // Очищаем OTP при ошибке
                 otpCode = ""
-                focusRequesters[0].requestFocus()
+                scope.launch {
+                    focusRequester1.requestFocus()
+                }
                 viewModel.resetState()
             }
             else -> {}
@@ -109,7 +127,7 @@ fun RecoveryVerificationScreen(
     ) {
         // Заголовок
         Text(
-            text = stringResource(id = R.string.otp_verification),
+            text = stringResource(id = R.string.otp_verification), // Добавьте этот string resource
             style = AppTypography.headingRegular32,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -117,22 +135,25 @@ fun RecoveryVerificationScreen(
 
         // Информационное сообщение
         Text(
-            text = stringResource(id = R.string.check_email_for_code),
+            text = stringResource(id = R.string.check_email_for_code), // Добавьте этот string resource
             style = AppTypography.subtitleRegular16.copy(color = MaterialTheme.colorScheme.outline),
             textAlign = TextAlign.Center,
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 8.dp)
         )
-        // Надпись "OTP код"
-        Text(
-            text = stringResource(id = R.string.otp_code),
-            style = AppTypography.bodyMedium16.copy(fontWeight = FontWeight.Medium),
-            color = MaterialTheme.colorScheme.onSurface,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 16.dp)
-        )
+
+        // Отображение email
+        if (userEmail.isNotEmpty()) {
+            Text(
+                text = "Код отправлен на: $userEmail",
+                style = AppTypography.bodyMedium14.copy(color = MaterialTheme.colorScheme.primary),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 16.dp)
+            )
+        }
 
         // Контейнер для OTP полей
         Row(
@@ -163,6 +184,14 @@ fun RecoveryVerificationScreen(
             }
         }
 
+        // Статус загрузки
+        if (verificationState is VerificationState.Loading) {
+            CircularProgressIndicator(
+                modifier = Modifier.size(24.dp),
+                strokeWidth = 2.dp
+            )
+        }
+
         Spacer(modifier = Modifier.height(40.dp))
     }
 }
@@ -176,7 +205,7 @@ fun OTPDigitBox(
     focusRequester: FocusRequester,
     modifier: Modifier = Modifier
 ) {
-    val isFocused = remember { mutableStateOf(false) }
+    var isFocused by remember { mutableStateOf(false) }
     val currentChar = if (index < otpCode.length) otpCode[index].toString() else ""
 
     Box(
@@ -184,10 +213,11 @@ fun OTPDigitBox(
             .clip(RoundedCornerShape(12.dp))
             .border(
                 width = 2.dp,
-                color = if (isFocused.value) Color(0xFF0560FA) else Color(0xFFE0E0E0),
+                color = if (isFocused) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f),
                 shape = RoundedCornerShape(12.dp)
             )
-            .background(Color.White)
+            .background(MaterialTheme.colorScheme.surface)
             .clickable { focusRequester.requestFocus() }
             .padding(2.dp),
         contentAlignment = Alignment.Center
@@ -202,18 +232,18 @@ fun OTPDigitBox(
             modifier = Modifier
                 .fillMaxSize()
                 .focusRequester(focusRequester)
-                .onFocusChanged { isFocused.value = it.isFocused },
+                .onFocusChanged { isFocused = it.isFocused },
             textStyle = TextStyle(
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
                 textAlign = TextAlign.Center,
-                color = Color.Black
+                color = MaterialTheme.colorScheme.onSurface
             ),
             keyboardOptions = KeyboardOptions(
                 keyboardType = KeyboardType.Number,
                 imeAction = ImeAction.Next
             ),
-            cursorBrush = SolidColor(Color(0xFF0560FA)),
+            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
             singleLine = true,
             decorationBox = { innerTextField ->
                 Box(
@@ -226,7 +256,7 @@ fun OTPDigitBox(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(1.dp)
-                                .background(Color(0xFFE0E0E0))
+                                .background(MaterialTheme.colorScheme.outline.copy(alpha = 0.3f))
                                 .align(Alignment.Center)
                         )
                     }
@@ -279,12 +309,25 @@ private fun handleOtpInput(
     }
 }
 
+// Вспомогательная функция для показа Toast
+private fun showToast(context: android.content.Context, message: String) {
+    android.widget.Toast.makeText(
+        context,
+        message,
+        android.widget.Toast.LENGTH_LONG
+    ).show()
+}
 
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun RecoveryVerificationScreenPreview() {
     MaterialTheme {
-        RecoveryVerificationScreen({}, {})
+        RecoveryVerificationScreen(
+            onSignInClick = {},
+            onResetPasswordClick = { resetToken ->
+                // Preview навигация
+            }
+        )
     }
 }

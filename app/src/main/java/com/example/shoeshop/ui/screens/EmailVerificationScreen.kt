@@ -9,13 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -35,21 +29,25 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.example.myfirstproject.data.model.SignUpRequest
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoeshop.R
 import com.example.shoeshop.ui.components.DisableButton
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.EmailVerificationViewModel
-import kotlin.text.ifEmpty
+import com.example.shoeshop.ui.viewmodel.VerificationState
+import com.example.shoeshop.ui.viewmodel.OtpType
+import kotlinx.coroutines.delay
 
 @Composable
 fun EmailVerificationScreen(
     onSignInClick: () -> Unit,
     onVerificationSuccess: () -> Unit,
-    viewModel: EmailVerificationViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    viewModel: EmailVerificationViewModel = viewModel()
 ) {
     var otpCode by remember { mutableStateOf("") }
     var userEmail by remember { mutableStateOf("") }
+    var resendEnabled by remember { mutableStateOf(true) }
+    var countdown by remember { mutableStateOf(0) }
     val context = LocalContext.current
     val verificationState by viewModel.verificationState.collectAsStateWithLifecycle()
 
@@ -57,15 +55,41 @@ fun EmailVerificationScreen(
         userEmail = getUserEmail(context)
     }
 
+    // Таймер для повторной отправки
+    LaunchedEffect(countdown) {
+        if (countdown > 0) {
+            delay(1000L)
+            countdown--
+        } else {
+            resendEnabled = true
+        }
+    }
+
     LaunchedEffect(verificationState) {
         when (verificationState) {
-            is com.example.shoeshop.ui.viewmodel.VerificationState.Success -> {
-                onVerificationSuccess()
-                viewModel.resetState()
+            is VerificationState.Loading -> {
+                // Можно показать индикатор загрузки
             }
-            is com.example.shoeshop.ui.viewmodel.VerificationState.Error -> {
-                val errorMessage = (verificationState as com.example.shoeshop.ui.viewmodel.VerificationState.Error).message
-                android.widget.Toast.makeText(context, errorMessage, android.widget.Toast.LENGTH_LONG).show()
+            is VerificationState.Success -> {
+                when ((verificationState as VerificationState.Success).type) {
+                    OtpType.EMAIL -> {
+                        onVerificationSuccess()
+                        viewModel.resetState()
+                    }
+                    OtpType.RECOVERY -> {
+                        // Не должно происходить в этом экране
+                        Toast.makeText(
+                            context,
+                            "Неправильный тип OTP",
+                            Toast.LENGTH_LONG
+                        ).show()
+                        viewModel.resetState()
+                    }
+                }
+            }
+            is VerificationState.Error -> {
+                val errorMessage = (verificationState as VerificationState.Error).message
+                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
                 viewModel.resetState()
             }
             else -> {}
@@ -81,7 +105,7 @@ fun EmailVerificationScreen(
     ) {
         // Заголовок
         Text(
-            text = "Verify Your Email",
+            text = stringResource(id = R.string.verify_your_email),
             style = MaterialTheme.typography.headlineLarge,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
@@ -90,7 +114,7 @@ fun EmailVerificationScreen(
 
         // Информационное сообщение
         Text(
-            text = "We sent a 6-digit verification code to:",
+            text = stringResource(id = R.string.sent_verification_code),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
@@ -98,18 +122,29 @@ fun EmailVerificationScreen(
         )
 
         // Email пользователя
-        Text(
-            text = userEmail.ifEmpty { "your email" },
-            style = MaterialTheme.typography.bodyLarge,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF0560FA),
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 40.dp)
-        )
+        if (userEmail.isNotEmpty()) {
+            Text(
+                text = userEmail,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 40.dp)
+            )
+        } else {
+            Text(
+                text = stringResource(id = R.string.your_email),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.primary,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.padding(bottom = 40.dp)
+            )
+        }
 
         // Поле для OTP кода
         Text(
-            text = "Enter OTP Code",
+            text = stringResource(id = R.string.enter_otp_code),
             style = MaterialTheme.typography.bodyMedium,
             fontWeight = FontWeight.Medium,
             modifier = Modifier.padding(bottom = 8.dp)
@@ -120,43 +155,100 @@ fun EmailVerificationScreen(
             onValueChange = {
                 if (it.length <= 6 && it.all { char -> char.isDigit() }) {
                     otpCode = it
+
+                    // Автоматическая проверка при вводе 6 цифр
+                    if (it.length == 6 && userEmail.isNotEmpty()) {
+                        viewModel.verifyEmailOtp(userEmail, otpCode)
+                    }
                 }
             },
-            placeholder = { Text("123456") },
+            placeholder = { Text(stringResource(id = R.string.otp_placeholder)) },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
             shape = MaterialTheme.shapes.medium,
             colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = Color(0xFFA7A7A7),
-                focusedBorderColor = Color(0xFF0560FA)
-            )
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline,
+                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surface,
+                focusedContainerColor = MaterialTheme.colorScheme.surface
+            ),
+            singleLine = true,
+            isError = verificationState is VerificationState.Error,
+            supportingText = {
+                if (verificationState is VerificationState.Error) {
+                    Text(
+                        text = (verificationState as VerificationState.Error).message,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+            }
         )
 
         // Подсказка под полем OTP
         Text(
-            text = "Enter the 6-digit code from your email",
+            text = stringResource(id = R.string.enter_6_digit_code),
             style = MaterialTheme.typography.bodySmall,
-            color = Color(0xFFA7A7A7),
-            modifier = Modifier.padding(bottom = 32.dp)
+            color = MaterialTheme.colorScheme.outline,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
-        Spacer(modifier = Modifier.height(80.dp))
 
+        // Кнопка повторной отправки
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 32.dp),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            if (countdown > 0) {
+                Text(
+                    text = stringResource(id = R.string.resend_in, countdown),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.outline
+                )
+            } else {
+                TextButton(
+                    onClick = {
+                        if (resendEnabled && userEmail.isNotEmpty()) {
+                            // TODO: Реализовать повторную отправку email OTP
+                            Toast.makeText(
+                                context,
+                                "Запрос на повторную отправку отправлен",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                            resendEnabled = false
+                            countdown = 60 // 60 секунд до возможности повторной отправки
+                        }
+                    },
+                    enabled = resendEnabled && userEmail.isNotEmpty()
+                ) {
+                    Text(
+                        text = "Resend code",
+                        color = if (resendEnabled && userEmail.isNotEmpty()) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            MaterialTheme.colorScheme.outline
+                        }
+                    )
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(40.dp))
+
+        // Кнопка проверки OTP
         DisableButton(
             text = stringResource(id = R.string.verify),
+            enabled = otpCode.length == 6 && userEmail.isNotEmpty(),
             onClick = {
                 if (otpCode.length == 6 && userEmail.isNotEmpty()) {
-                    viewModel.verifyOtp(userEmail, otpCode)
-                } else if (userEmail.isEmpty()) {
-                    android.widget.Toast.makeText(context, "Email not found. Please sign up again.", android.widget.Toast.LENGTH_LONG).show()
-                } else {
-                    android.widget.Toast.makeText(context, "Please enter 6-digit OTP code", android.widget.Toast.LENGTH_LONG).show()
+                    viewModel.verifyEmailOtp(userEmail, otpCode) // Используем email метод
                 }
             },
             textStyle = AppTypography.bodyMedium16
         )
 
-        Spacer(modifier = Modifier.height(10.dp))
+        Spacer(modifier = Modifier.height(24.dp))
 
         // Ссылка для возврата к входу
         Row(
@@ -169,11 +261,11 @@ fun EmailVerificationScreen(
             ) {
                 Text(
                     buildAnnotatedString {
-                        withStyle(style = SpanStyle(color = Color(0xFFA7A7A7))) {
-                            append("Already verified? ")
+                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.outline)) {
+                            append(stringResource(id = R.string.already_verified))
                         }
-                        withStyle(style = SpanStyle(color = Color(0xFF0560FA))) {
-                            append("Sign In")
+                        withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.primary)) {
+                            append(stringResource(id = R.string.sign_in))
                         }
                     },
                     fontSize = 14.sp

@@ -72,5 +72,15 @@
     <string name="create">Create Account</string>
     <string name="cancel">Cancel</string>
     <string name="verify">Verify Email</string>
+    <string name="verify_your_email">Verify Your Email</string>
+    <string name="sent_verification_code">We sent a 6-digit verification code to:</string>
+    <string name="your_email">your email</string>
+    <string name="enter_otp_code">Enter OTP Code</string>
+    <string name="otp_placeholder">123456</string>
+    <string name="enter_6_digit_code">Enter the 6-digit code from your email</string>
+    <string name="resend_in">Resend in %d seconds</string>
+    <string name="email_not_found">Email not found. Please sign up again.</string>
+    <string name="please_enter_6_digit_otp">Please enter 6-digit OTP code</string>
+    <string name="already_verified">Already verified? </string>
 
 </resources>
