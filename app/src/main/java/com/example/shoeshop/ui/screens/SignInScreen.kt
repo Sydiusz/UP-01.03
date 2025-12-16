@@ -6,9 +6,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -20,26 +22,69 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoeshop.R
 import com.example.shoeshop.ui.components.BackButton
 import com.example.shoeshop.ui.components.DisableButton
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.theme.ShoeShopTheme
+import com.example.shoeshop.ui.viewmodel.SignInState
+import com.example.shoeshop.ui.viewmodel.SignInViewModel
 
 @Composable
 fun SignInScreen(
     modifier: Modifier = Modifier,
     onForgotPasswordClick : () -> Unit = {} ,
     onSignInClick : () -> Unit = {} ,
-    onSignUpClick : () -> Unit = {}
+    onSignUpClick : () -> Unit = {},
+    viewModel: SignInViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    val checkedState = remember { mutableStateOf(false) }
+    val signInState by viewModel.signInState.collectAsStateWithLifecycle()
+    var showErrorDialog by remember { mutableStateOf(false) }
+    var errorMessage by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
     // Используем цвета из темы
     val hintColor = MaterialTheme.colorScheme.onSurfaceVariant
     val borderColor = MaterialTheme.colorScheme.outline
+
+    LaunchedEffect(signInState) {
+        when (signInState) {
+            is SignInState.Success -> {
+
+                onSignInClick()
+                viewModel.resetState()
+            }
+            is SignInState.Error -> {
+                errorMessage = (signInState as SignInState.Error).message
+                showErrorDialog = true
+                viewModel.resetState()
+            }
+            else -> {}
+        }
+    }
+
+    // AlertDialog для ошибок авторизации
+    if (showErrorDialog) {
+        AlertDialog(
+            onDismissRequest = { showErrorDialog = false },
+            title = { Text("Authentication Error") },
+            text = { Text(errorMessage) },
+            confirmButton = {
+                Button(
+                    onClick = { showErrorDialog = false },
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0560FA))
+                ) {
+                    Text("OK")
+                }
+            }
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -192,7 +237,12 @@ fun SignInScreen(
         // Кнопка регистрации
         DisableButton(
             text = stringResource(id = R.string.sign_in),
-            onClick = onSignInClick,
+            onClick = { if (email.isNotEmpty() && password.isNotEmpty()) {
+                viewModel.signIn(email, password)
+            } else {
+                errorMessage = "Please fill in all fields"
+                showErrorDialog = true
+            } },
             textStyle = AppTypography.bodyMedium16 // Body Medium 16 для текста кнопки
         )
 

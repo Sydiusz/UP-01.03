@@ -72,4 +72,5 @@
     <string name="loyalty_card">карта лояльности</string>
     <string name="create">Создать пользователя</string>
     <string name="cancel">Отмена</string>
+    <string name="verify">Подтвердить Email</string>
 </resources>

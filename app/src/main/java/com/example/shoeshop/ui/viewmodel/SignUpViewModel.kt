@@ -1,18 +1,11 @@
-// SignUpViewModel.kt
-package com.example.shoeshop.ui.viewmodel
-
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.shoeshop.data.RetrofitInstance
 import com.example.myfirstproject.data.model.SignUpRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
-import java.net.ConnectException
-import java.net.SocketTimeoutException
-import kotlin.let
-import kotlin.toString
+import com.example.shoeshop.data.RetrofitInstance
 
 class SignUpViewModel : ViewModel() {
     private val _signUpState = MutableStateFlow<SignUpState>(SignUpState.Idle)
@@ -38,8 +31,8 @@ class SignUpViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 val errorMessage = when (e) {
-                    is ConnectException -> "No internet connection"
-                    is SocketTimeoutException -> "Connection timeout"
+                    is java.net.ConnectException -> "No internet connection"
+                    is java.net.SocketTimeoutException -> "Connection timeout"
                     else -> "Network error: ${e.message}"
                 }
                 _signUpState.value = SignUpState.Error(errorMessage)

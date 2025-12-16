@@ -71,5 +71,6 @@
     <string name="loyalty_card">Loyalty Card</string>
     <string name="create">Create Account</string>
     <string name="cancel">Cancel</string>
+    <string name="verify">Verify Email</string>
 
 </resources>

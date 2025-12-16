@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -34,6 +35,10 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.example.myfirstproject.data.model.SignUpRequest
+import com.example.shoeshop.R
+import com.example.shoeshop.ui.components.DisableButton
+import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.EmailVerificationViewModel
 import kotlin.text.ifEmpty
 
@@ -137,8 +142,8 @@ fun EmailVerificationScreen(
         )
         Spacer(modifier = Modifier.height(80.dp))
 
-        // Кнопка Verify
-        Button(
+        DisableButton(
+            text = stringResource(id = R.string.verify),
             onClick = {
                 if (otpCode.length == 6 && userEmail.isNotEmpty()) {
                     viewModel.verifyOtp(userEmail, otpCode)
@@ -148,17 +153,8 @@ fun EmailVerificationScreen(
                     android.widget.Toast.makeText(context, "Please enter 6-digit OTP code", android.widget.Toast.LENGTH_LONG).show()
                 }
             },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp),
-            shape = MaterialTheme.shapes.extraSmall,
-            colors = ButtonDefaults.buttonColors(
-                containerColor = Color(0xFF0560FA)
-            ),
-            enabled = otpCode.length == 6
-        ) {
-            Text("Verify Email", fontSize = 16.sp, fontWeight = FontWeight.Medium)
-        }
+            textStyle = AppTypography.bodyMedium16
+        )
 
         Spacer(modifier = Modifier.height(10.dp))
 

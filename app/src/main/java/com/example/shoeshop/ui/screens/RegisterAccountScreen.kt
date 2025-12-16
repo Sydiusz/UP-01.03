@@ -1,5 +1,6 @@
 package com.example.shoeshop.ui.screens
 
+import SignUpViewModel
 import android.content.Context
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -32,8 +33,6 @@ import com.example.shoeshop.ui.components.AlertDialogWithTwoButtons
 import com.example.shoeshop.ui.components.BackButton
 import com.example.shoeshop.ui.components.DisableButton
 import com.example.shoeshop.ui.theme.AppTypography
-import com.example.shoeshop.ui.viewmodel.SignUpViewModel
-import com.example.shoeshop.ui.viewmodel.SignUpState
 import kotlinx.coroutines.launch
 
 @Composable
