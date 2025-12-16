@@ -8,110 +8,183 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoeshop.R
 import com.example.shoeshop.ui.components.BackButton
-import com.example.shoeshop.ui.components.DisableButton
+import com.example.shoeshop.ui.components.PasswordResetAlertDialog
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.theme.ShoeShopTheme
+import com.example.shoeshop.ui.viewmodel.ForgotPasswordViewModel
+import com.example.shoeshop.ui.viewmodel.PasswordRecoveryState
+import kotlinx.coroutines.launch
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForgotPasswordScreen(
     modifier: Modifier = Modifier,
-    onForgotPasswordClick : () -> Unit = {} ,
-    onSignInClick : () -> Unit = {} ,
-    onSignUpClick : () -> Unit = {}
+    onBackClick: () -> Unit = {},
+    onNavigateToOtpVerification: (email: String) -> Unit = {},
+    viewModel: ForgotPasswordViewModel = viewModel()
 ) {
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
+    val uiState by viewModel.passwordRecoveryState.collectAsState()
+    val email by viewModel.email.collectAsState()
+    val isEmailValid by viewModel.isEmailValid.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
-    // Используем цвета из темы
-    val hintColor = MaterialTheme.colorScheme.onSurfaceVariant
-    val borderColor = MaterialTheme.colorScheme.outline
+    // Состояние для отображения AlertDialog
+    var showSuccessDialog by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(23.dp)
-            .background(Color.White),
-        verticalArrangement = Arrangement.Center,
-    ) {
-        BackButton(
-            onClick = {}
-        )
-
-        Column(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(
-                text = stringResource(id = R.string.forgot_password),
-                style = AppTypography.headingRegular32,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.padding(bottom = 8.dp)
-            )
-
-            // Используем bodyRegular14 вместо bodyMedium
-            Text(
-                text = stringResource(id = R.string.enter_email_to_reset),
-                style = AppTypography.subtitleRegular16,
-                color = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.padding(bottom = 54.dp)
-            )
+    // Обработка состояний
+    LaunchedEffect(uiState) {
+        when (uiState) {
+            is PasswordRecoveryState.Success -> {
+                showSuccessDialog = true
+            }
+            is PasswordRecoveryState.Error -> {
+                scope.launch {
+                    snackbarHostState.showSnackbar(
+                        (uiState as PasswordRecoveryState.Error).message,
+                        withDismissAction = true
+                    )
+                }
+            }
+            else -> {}
         }
+    }
 
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            placeholder = {
-                Text(
-                    "......@mail.com",
-                    style = AppTypography.bodyRegular14,
-                    color = hintColor
-                )
+    // Отображаем AlertDialog при успешной отправке
+    if (showSuccessDialog && email.isNotEmpty()) {
+        PasswordResetAlertDialog(
+            onConfirm = {
+                showSuccessDialog = false
+                onNavigateToOtpVerification(email)
             },
+            onDismiss = {
+                showSuccessDialog = false
+            }
+        )
+    }
+
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) }
+    ) { paddingValues ->
+        Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 20.dp),
-            shape = MaterialTheme.shapes.medium,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
-            colors = OutlinedTextFieldDefaults.colors(
-                unfocusedBorderColor = borderColor,
-                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = hintColor,
-                focusedLabelColor = MaterialTheme.colorScheme.primary,
-                cursorColor = MaterialTheme.colorScheme.primary,
-                focusedTextColor = MaterialTheme.colorScheme.onSurface,
-                unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
-                focusedPlaceholderColor = hintColor,
-                unfocusedPlaceholderColor = hintColor
-            ),
-            textStyle = AppTypography.bodyRegular16, // Body Regular 16 для ввода текста
-            singleLine = true
-        )
+                .fillMaxSize()
+                .padding(paddingValues)
+                .padding(23.dp)
+                .background(Color.White),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Кнопка назад
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Start
+            ) {
+                BackButton(
+                    onClick = onBackClick
+                )
+            }
 
+            // Заголовок
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = stringResource(id = R.string.forgot_password),
+                    style = AppTypography.headingRegular32,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
 
-        Spacer(modifier = Modifier.height(24.dp))
+                Text(
+                    text = stringResource(id = R.string.enter_email_to_reset),
+                    style = AppTypography.subtitleRegular16,
+                    color = MaterialTheme.colorScheme.outline,
+                    modifier = Modifier.padding(bottom = 54.dp)
+                )
+            }
 
-        // Кнопка регистрации
-        DisableButton(
-            text = stringResource(id = R.string.sign_in),
-            onClick = onSignInClick,
-            textStyle = AppTypography.bodyMedium16 // Body Medium 16 для текста кнопки
-        )
+            // Поле для ввода email
+            OutlinedTextField(
+                value = email,
+                onValueChange = { viewModel.updateEmail(it) },
+                placeholder = {
+                    Text(
+                        "example@mail.com",
+                        style = AppTypography.bodyRegular14,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 20.dp),
+                shape = MaterialTheme.shapes.medium,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = if (email.isNotEmpty() && !isEmailValid)
+                        MaterialTheme.colorScheme.error
+                    else
+                        MaterialTheme.colorScheme.outline,
+                    focusedBorderColor = if (isEmailValid)
+                        MaterialTheme.colorScheme.primary
+                    else
+                        MaterialTheme.colorScheme.error,
+                    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    focusedLabelColor = MaterialTheme.colorScheme.primary,
+                    cursorColor = MaterialTheme.colorScheme.primary,
+                    focusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    unfocusedTextColor = MaterialTheme.colorScheme.onSurface,
+                    focusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unfocusedPlaceholderColor = MaterialTheme.colorScheme.onSurfaceVariant
+                ),
+                textStyle = AppTypography.bodyRegular16,
+                singleLine = true,
+                isError = email.isNotEmpty() && !isEmailValid,
+                supportingText = {
+                    if (email.isNotEmpty() && !isEmailValid) {
+                        Text(
+                            text = "Введите корректный email адрес",
+                            color = MaterialTheme.colorScheme.error,
+                            style = AppTypography.bodyRegular12
+                        )
+                    }
+                }
+            )
 
-        Spacer(modifier = Modifier.weight(1f))
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Кнопка отправки
+            Button(
+                onClick = { viewModel.recoverPassword() },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(56.dp),
+                enabled = isEmailValid && uiState !is PasswordRecoveryState.Loading,
+                shape = MaterialTheme.shapes.medium
+            ) {
+                if (uiState is PasswordRecoveryState.Loading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(20.dp),
+                        strokeWidth = 2.dp,
+                        color = MaterialTheme.colorScheme.onPrimary
+                    )
+                } else {
+                    Text(
+                        text = stringResource(id = R.string.send),
+                        style = AppTypography.bodyMedium16
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+        }
     }
 }
 
@@ -119,6 +192,9 @@ fun ForgotPasswordScreen(
 @Composable
 fun ForgotPasswordScreenPreview() {
     ShoeShopTheme {
-        SignInScreen()
+        ForgotPasswordScreen(
+            onBackClick = {},
+            onNavigateToOtpVerification = {}
+        )
     }
 }

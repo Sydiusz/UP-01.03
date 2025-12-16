@@ -39,7 +39,7 @@ fun NavigationApp(navController: NavHostController) {
 
         composable("forgot_password") {
             ForgotPasswordScreen(
-                onSignInClick = { navController.navigate("sign_in") },
+                onNavigateToOtpVerification = { navController.navigate("sign_in") },
             )
         }
 

@@ -7,6 +7,8 @@ import com.example.myfirstproject.data.model.SignUpRequest
 import com.example.myfirstproject.data.model.SignUpResponse
 import com.example.myfirstproject.data.model.VerifyOtpRequest
 import com.example.myfirstproject.data.model.VerifyOtpResponse
+import com.example.shoeshop.data.model.ForgotPasswordRequest
+import com.example.shoeshop.data.model.ForgotPasswordResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.Headers
@@ -36,4 +38,14 @@ interface UserManagementService {
     )
     @POST("auth/v1/verify")
     suspend fun verifyOtp(@Body verifyOtpRequest: VerifyOtpRequest): Response<VerifyOtpResponse>
+
+
+    @Headers(
+        "apikey: $API_KEY",
+        "Content-Type: application/json"
+    )
+    @POST("auth/v1/recover")
+    suspend fun recoverPassword(
+        @Body forgotPasswordRequest: ForgotPasswordRequest
+    ): Response<ForgotPasswordResponse>
 }
