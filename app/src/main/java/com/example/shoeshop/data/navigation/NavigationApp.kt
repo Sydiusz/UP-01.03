@@ -7,6 +7,8 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import com.example.shoeshop.ui.screens.ForgotPasswordScreen
+import com.example.shoeshop.ui.screens.HomeScreen
+import com.example.shoeshop.ui.screens.OnboardScreen
 import com.example.shoeshop.ui.screens.RegisterAccountScreen
 import com.example.shoeshop.ui.screens.SignInScreen
 
@@ -15,7 +17,7 @@ import com.example.shoeshop.ui.screens.SignInScreen
 fun NavigationApp(navController: NavHostController) {
     NavHost(
         navController = navController,
-        startDestination = "sign_up"
+        startDestination = "start_menu"
     ) {
         composable("sign_up") {
             RegisterAccountScreen(
@@ -45,6 +47,16 @@ fun NavigationApp(navController: NavHostController) {
             ForgotPasswordScreen(
                 onNavigateToOtpVerification = { navController.navigate("reset_password") },
             )
+        }
+
+        composable("start_menu") {
+            OnboardScreen (
+                onGetStartedClick = { navController.navigate("sign_up") },
+            )
+        }
+
+        composable("home") {
+            HomeScreen({},{},{})
         }
 
     }

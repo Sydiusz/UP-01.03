@@ -73,4 +73,14 @@
     <string name="create">Создать пользователя</string>
     <string name="cancel">Отмена</string>
     <string name="verify">Подтвердить Email</string>
+    <string name="verify_your_email">Подтвердите вашу электронную почту</string>
+    <string name="sent_verification_code">Мы отправили 6-значный код подтверждения на:</string>
+    <string name="your_email">вашу электронную почту</string>
+    <string name="enter_otp_code">Введите OTP код</string>
+    <string name="otp_placeholder">123456</string>
+    <string name="enter_6_digit_code">Введите 6-значный код из вашего email</string>
+    <string name="resend_in">Повторная отправка через %d секунд</string>
+    <string name="email_not_found">Email не найден. Пожалуйста, зарегистрируйтесь снова.</string>
+    <string name="please_enter_6_digit_otp">Пожалуйста, введите 6-значный OTP код</string>
+    <string name="already_verified">Уже подтвердили? </string>
 </resources>
