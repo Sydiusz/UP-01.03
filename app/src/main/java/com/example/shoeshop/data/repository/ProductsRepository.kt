@@ -3,6 +3,7 @@ package com.example.shoeshop.data.repository
 import com.example.shoeshop.data.RetrofitInstance
 import com.example.shoeshop.data.model.Category
 import com.example.shoeshop.data.model.Product
+import java.util.Collections.emptyList
 
 class ProductsRepository {
     private val productsService = RetrofitInstance.productsService
@@ -122,4 +123,40 @@ class ProductsRepository {
             Result.failure(e)
         }
     }
+
+    // data/repository/ProductsRepository.kt
+    suspend fun getProductById(productId: String): Result<Product> {
+        return try {
+            android.util.Log.d(TAG, "Запрос товара по ID: $productId")
+
+            // Сначала получим все товары
+            val allProductsResult = getAllProducts()
+
+            if (allProductsResult.isSuccess) {
+                val allProducts = allProductsResult.getOrDefault(emptyList())
+                android.util.Log.d(TAG, "Всего товаров загружено: ${allProducts.size}")
+
+                // Найдем товар по ID
+                val product = allProducts.find { it.id == productId }
+
+                if (product != null) {
+                    android.util.Log.d(TAG, "Товар найден: ${product.name}, цена: ${product.price}, ID: ${product.id}")
+                    Result.success(product)
+                } else {
+                    android.util.Log.e(TAG, "Товар с ID '$productId' не найден в списке. Доступные ID:")
+                    allProducts.take(5).forEach { p ->
+                        android.util.Log.d(TAG, "  - ${p.id}: ${p.name}")
+                    }
+                    Result.failure(Exception("Товар с ID '$productId' не найден"))
+                }
+            } else {
+                android.util.Log.e(TAG, "Не удалось загрузить список товаров для поиска по ID")
+                Result.failure(Exception("Не удалось загрузить данные"))
+            }
+        } catch (e: Exception) {
+            android.util.Log.e(TAG, "Исключение getProductById: ${e.message}", e)
+            Result.failure(e)
+        }
+    }
+
 }

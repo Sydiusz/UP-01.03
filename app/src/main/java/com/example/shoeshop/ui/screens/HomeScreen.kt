@@ -414,14 +414,15 @@ private fun PopularSection(
         } else {
             // Список товаров
             LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
+                modifier = Modifier.padding(horizontal = 16.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 items(products) { product ->
                     ProductCard(
                         product = product,
                         onProductClick = { onProductClick(product) },
                         onFavoriteClick = { onFavoriteClick(product) },
-                        modifier= Modifier
+                        modifier = Modifier
                     )
                 }
             }

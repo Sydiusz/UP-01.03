@@ -12,6 +12,7 @@ import com.example.shoeshop.ui.screens.CategoryProductsScreen
 import com.example.shoeshop.ui.screens.ForgotPasswordScreen
 import com.example.shoeshop.ui.screens.HomeScreen
 import com.example.shoeshop.ui.screens.OnboardScreen
+import com.example.shoeshop.ui.screens.ProductDetailScreen
 import com.example.shoeshop.ui.screens.RegisterAccountScreen
 import com.example.shoeshop.ui.screens.SignInScreen
 
@@ -59,14 +60,10 @@ fun NavigationApp(navController: NavHostController) {
         }
 
         composable("home") {
-            HomeScreen({},{},{})
-        }
-
-        composable("home") {
             HomeScreen(
                 onProductClick = { product ->
                     // Навигация на экран товара
-                    // navController.navigate("product/${product.id}")
+                    navController.navigate("product/${product.id}")
                 },
                 onCartClick = {
                     // Навигация на корзину
@@ -92,7 +89,7 @@ fun NavigationApp(navController: NavHostController) {
                 categoryName = categoryName,
                 onProductClick = { product ->
                     // Навигация на экран товара
-                    // navController.navigate("product/${product.id}")
+                    navController.navigate("product/${product.id}")
                 },
                 onBackClick = { navController.popBackStack() },
                 onCategorySelected = { newCategoryName ->
@@ -101,6 +98,22 @@ fun NavigationApp(navController: NavHostController) {
                         // Очищаем стек чтобы не было много экранов категорий
                         popUpTo("category/{categoryName}") { inclusive = true }
                     }
+                }
+            )
+        }
+
+        // Добавьте новый маршрут для деталей товара
+        composable(
+            route = "product/{productId}",
+            arguments = listOf(navArgument("productId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getString("productId") ?: ""
+            ProductDetailScreen(
+                productId = productId,
+                onBackClick = { navController.popBackStack() },
+                onAddToCart = {
+                },
+                onToggleFavorite = {
                 }
             )
         }
