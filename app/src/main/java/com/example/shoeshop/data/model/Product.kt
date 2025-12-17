@@ -15,18 +15,22 @@ data class Product(
     @SerializedName("description")
     val description: String,
 
-    @SerializedName("category")
-    val category: String? = null,
+    @SerializedName("category_id")
+    val categoryId: String?,
 
     @SerializedName("is_best_seller")
     val isBestSeller: Boolean = false,
 
-    val originalPrice: String = "", // можно оставить для отображения старой цены
+
+    // Измените типы на nullable или инициализируйте по умолчанию
+    val displayCategory: String? = null,
+    val originalPrice: String = "",  // Инициализируйте пустой строкой
     val imageUrl: String = "",
-    val imageResId: Int? = null
+    val imageResId: Int? = null,
+
+    val isFavorite: Boolean = false // Добавляем поле для состояния избранного
 ) {
-    // Форматированная цена
     fun getFormattedPrice(): String {
-        return "P${String.format("%.2f", price)}"
+        return "₽${String.format("%.2f", price)}"
     }
 }

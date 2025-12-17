@@ -10,14 +10,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
-import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Settings
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import com.example.shoeshop.R
 import androidx.compose.ui.Modifier
@@ -28,8 +23,6 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,9 +40,10 @@ fun HomeScreen(
     onProductClick: (Product) -> Unit,
     onCartClick: () -> Unit,
     onSearchClick: () -> Unit,
-    onSettingsClick: () -> Unit = {}
+    onSettingsClick: () -> Unit = {},
+    onCategoryClick: (String) -> Unit = {} // Новый параметр для навигации на категорию
 ) {
-    var selected by rememberSaveable { mutableIntStateOf(0) }
+    var selected by remember { mutableIntStateOf(0) }
 
     // Используем ViewModel для управления состоянием
     val viewModel: HomeViewModel = viewModel()
@@ -100,7 +94,7 @@ fun HomeScreen(
                         }
                     }
 
-                    // Центральная кнопка корзины (выше других кнопок)
+                    // Центральная кнопка корзины
                     Box(
                         modifier = Modifier
                             .offset(y = (-20).dp)
@@ -145,7 +139,7 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        // Показываем индикатор загрузки если данные грузятся
+        // Показываем индикатор загрузки
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier
@@ -196,7 +190,7 @@ fun HomeScreen(
                         textAlign = TextAlign.Center
                     )
 
-                    // Строка с полем поиска и иконкой настроек
+                    // Строка с поиском и настройками
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         verticalAlignment = Alignment.CenterVertically
@@ -240,7 +234,7 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.width(12.dp))
 
-                        // Иконка настроек с круглым голубым фоном
+                        // Иконка настроек
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
@@ -261,9 +255,7 @@ fun HomeScreen(
             }
 
             // Основной контент
-            Box(
-                modifier = Modifier.fillMaxSize()
-            ) {
+            Box(modifier = Modifier.fillMaxSize()) {
                 when (selected) {
                     0 -> {
                         LazyColumn(
@@ -276,8 +268,9 @@ fun HomeScreen(
                                 CategorySection(
                                     categories = uiState.categories,
                                     selectedCategory = uiState.selectedCategory,
-                                    onCategorySelected = { category ->
-                                        viewModel.selectCategory(category)
+                                    onCategorySelected = { categoryName ->
+                                        viewModel.selectCategory(categoryName)
+                                        onCategoryClick(categoryName) // Навигация на экран категории
                                     }
                                 )
                             }
@@ -291,19 +284,6 @@ fun HomeScreen(
                                         // Обработка добавления в избранное
                                     }
                                 )
-                            }
-
-                            // Секция: Лучшие предложения (если есть данные)
-                            if (uiState.bestSellers.isNotEmpty()) {
-                                item {
-                                    BestSellersSection(
-                                        products = uiState.bestSellers,
-                                        onProductClick = onProductClick,
-                                        onFavoriteClick = { product ->
-                                            // Обработка добавления в избранное
-                                        }
-                                    )
-                                }
                             }
 
                             // Секция: Акции
@@ -344,7 +324,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun CategorySection(
+fun CategorySection(
     categories: List<Category>,
     selectedCategory: String,
     onCategorySelected: (String) -> Unit
@@ -413,7 +393,7 @@ private fun PopularSection(
                 style = AppTypography.bodyRegular12,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.clickable {
-                    // Навигация на все популярные товары
+                    // Можно добавить навигацию на все популярные товары
                 }
             )
         }
@@ -437,69 +417,11 @@ private fun PopularSection(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(products) { product ->
-                    // Создаем ProductCard для отображения
                     ProductCard(
                         product = product,
                         onProductClick = { onProductClick(product) },
-                        onFavoriteClick = { onFavoriteClick(product) }
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BestSellersSection(
-    products: List<Product>,
-    onProductClick: (Product) -> Unit,
-    onFavoriteClick: (Product) -> Unit
-) {
-    Column {
-        // Заголовок раздела
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Text(
-                text = "Лучшие предложения",
-                style = AppTypography.bodyMedium16,
-            )
-            Text(
-                text = "Все",
-                style = AppTypography.bodyRegular12,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable {
-                    // Навигация на все лучшие предложения
-                }
-            )
-        }
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // Проверяем, есть ли товары
-        if (products.isEmpty()) {
-            Text(
-                text = "Нет лучших предложений",
-                style = AppTypography.bodyRegular14,
-                color = Color.Gray,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 20.dp),
-                textAlign = TextAlign.Center
-            )
-        } else {
-            // Список товаров
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                items(products) { product ->
-                    // Создаем ProductCard для отображения
-                    ProductCard(
-                        product = product,
-                        onProductClick = { onProductClick(product) },
-                        onFavoriteClick = { onFavoriteClick(product) }
+                        onFavoriteClick = { onFavoriteClick(product) },
+                        modifier= Modifier
                     )
                 }
             }
@@ -531,10 +453,7 @@ private fun PromotionsSection() {
                     .padding(16.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Левая часть с текстом
-                Column(
-                    modifier = Modifier.weight(1f)
-                ) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = "Summer Sale",
                         style = AppTypography.headingRegular32.copy(
@@ -556,7 +475,6 @@ private fun PromotionsSection() {
                     )
                 }
 
-                // Правая часть с кнопкой
                 TextButton(
                     onClick = {
                         // Навигация на акции
@@ -578,127 +496,6 @@ private fun PromotionsSection() {
     }
 }
 
-// Обновленный ProductCard для работы с новыми данными
-@Composable
-fun ProductCard(
-    product: Product,
-    onProductClick: () -> Unit,
-    onFavoriteClick: () -> Unit
-) {
-    Card(
-        modifier = Modifier
-            .width(160.dp)
-            .clickable { onProductClick() },
-        shape = RoundedCornerShape(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column {
-            // Изображение продукта
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp)
-                    .background(Color.LightGray)
-            ) {
-                // Для демонстрации используем placeholder
-                // В реальном приложении можно использовать Coil для загрузки изображений
-                if (product.imageResId != null) {
-                    androidx.compose.foundation.Image(
-                        painter = painterResource(id = product.imageResId),
-                        contentDescription = product.name,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = product.name.take(2).uppercase(),
-                            style = AppTypography.headingRegular32.copy(
-                                fontSize = 24.sp,
-                                color = Color.White
-                            )
-                        )
-                    }
-                }
-
-                // Бейдж категории
-                Box(
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .background(
-                            color = when(product.category) {
-                                "BEST SELLER" -> Color.Red
-                                "NEW" -> Color.Blue
-                                else -> Color.Green
-                            },
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 6.dp, vertical = 2.dp)
-                ) {
-                    Text(
-                        text = product.category ?: "",
-                        style = AppTypography.bodyRegular12.copy(
-                            color = Color.White,
-                            fontSize = 10.sp
-                        )
-                    )
-                }
-
-                // Кнопка избранного
-                IconButton(
-                    onClick = onFavoriteClick,
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .padding(8.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FavoriteBorder,
-                        contentDescription = "Добавить в избранное",
-                        tint = Color.White
-                    )
-                }
-            }
-
-            // Информация о продукте
-            Column(
-                modifier = Modifier.padding(12.dp)
-            ) {
-                Text(
-                    text = product.name,
-                    style = AppTypography.bodyMedium16,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                // Отображаем цену в формате P{цена}
-                Text(
-                    text = "P${String.format("%.2f", product.price)}",
-                    style = AppTypography.bodyMedium16.copy(
-                        fontWeight = FontWeight.Bold
-                    )
-                )
-
-                // Если есть оригинальная цена, показываем ее
-                if (product.originalPrice.isNotEmpty()) {
-                    Text(
-                        text = "P${product.originalPrice}",
-                        style = AppTypography.bodyRegular12.copy(
-                            color = Color.Gray,
-                            textDecoration = TextDecoration.LineThrough
-                        )
-                    )
-                }
-            }
-        }
-    }
-}
-
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun HomeScreenPreview() {
@@ -706,6 +503,7 @@ fun HomeScreenPreview() {
         onProductClick = {},
         onCartClick = {},
         onSearchClick = {},
-        onSettingsClick = {}
+        onSettingsClick = {},
+        onCategoryClick = {}
     )
 }

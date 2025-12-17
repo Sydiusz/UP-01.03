@@ -8,30 +8,23 @@ import retrofit2.http.Query
 
 interface ProductsService {
 
-    @GET("rest/v1/products")
+    @GET("products")
     suspend fun getProducts(
         @Query("select") select: String = "*",
-        @Query("order") order: String = "created_at.desc"
+        @Query("order") order: String = "title.asc"  // Измените на существующее поле
     ): Response<List<Product>>
 
-    @GET("rest/v1/products")
-    suspend fun getBestSellers(
-        @Query("select") select: String = "*",
-        @Query("is_best_seller") isBestSeller: Boolean = true,
-        @Query("order") order: String = "created_at.desc"
-    ): Response<List<Product>>
-
-    @GET("rest/v1/products")
+    @GET("products")
     suspend fun getProductsByCategory(
         @Query("select") select: String = "*",
-        @Query("category_id") categoryId: String,
-        @Query("order") order: String = "created_at.desc"
+        @Query("category_id") categoryId: String,  // УБЕРИТЕ значение по умолчанию!
+        @Query("order") order: String = "title.asc"
     ): Response<List<Product>>
 }
 
 interface CategoriesService {
 
-    @GET("rest/v1/categories")
+    @GET("categories")
     suspend fun getCategories(
         @Query("select") select: String = "*",
         @Query("order") order: String = "title.asc"

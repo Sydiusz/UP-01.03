@@ -15,93 +15,56 @@ import java.util.concurrent.TimeUnit
 import javax.net.ssl.*
 
 object RetrofitInstance {
+    // Базовый URL для всех сервисов Supabase
     const val SUPABASE_URL = "https://yixipuxyofpafnvbaprs.supabase.co"
-    const val API_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8"
+    const val REST_URL = "$SUPABASE_URL/rest/v1/"
 
-    // Конфигурация прокси
-    private val proxy: Proxy = Proxy(Proxy.Type.HTTP, InetSocketAddress("10.207.106.71", 3128))
+    // Прокси настройки
 
-    // 1. Клиент для Auth API (только apikey)
-    private fun createAuthClient(): OkHttpClient {
-        return createBaseClient().newBuilder()
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("apikey", API_KEY)
-                    .addHeader("Content-Type", "application/json")
-                    .build()
-                chain.proceed(request)
+    // Основной клиент для всех запросов
+    var client: OkHttpClient = OkHttpClient.Builder()
+        .addInterceptor { chain ->
+            val original = chain.request()
+
+            // Добавляем обязательные заголовки для Supabase REST API
+            val requestBuilder = original.newBuilder()
+                .header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8") // Замените на ваш ключ!
+                .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8") // Замените на ваш ключ!
+                .header("Content-Type", "application/json")
+                .method(original.method, original.body)
+
+            // Для авторизации могут быть другие заголовки
+            val url = original.url.toString()
+            if (url.contains("/auth/")) {
+                // Для auth endpoints используем только apikey
+                requestBuilder.removeHeader("Authorization")
+                requestBuilder.header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8") // Тот же ключ
             }
-            .build()
-    }
 
-    // 2. Клиент для REST API (apikey + Authorization)
-    private fun createRestApiClient(): OkHttpClient {
-        return createBaseClient().newBuilder()
-            .addInterceptor { chain ->
-                val request = chain.request().newBuilder()
-                    .addHeader("apikey", API_KEY)
-                    .addHeader("Authorization", "Bearer $API_KEY")
-                    .addHeader("Content-Type", "application/json")
-                    .addHeader("Prefer", "return=representation")
-                    .build()
-                chain.proceed(request)
-            }
-            .build()
-    }
-
-    // 3. Базовый клиент с SSL bypass
-    private fun createBaseClient(): OkHttpClient {
-        try {
-            // Trust manager для обхода SSL
-            val trustAllCerts = arrayOf<TrustManager>(object : X509TrustManager {
-                override fun checkClientTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
-                override fun checkServerTrusted(chain: Array<out X509Certificate>?, authType: String?) = Unit
-                override fun getAcceptedIssuers(): Array<X509Certificate> = arrayOf()
-            })
-
-            val sslContext = SSLContext.getInstance("SSL")
-            sslContext.init(null, trustAllCerts, SecureRandom())
-
-            return OkHttpClient.Builder()
-                .proxy(proxy)
-                .sslSocketFactory(sslContext.socketFactory, trustAllCerts[0] as X509TrustManager)
-                .hostnameVerifier { _, _ -> true }
-                .connectTimeout(30, TimeUnit.SECONDS)
-                .readTimeout(30, TimeUnit.SECONDS)
-                .writeTimeout(30, TimeUnit.SECONDS)
-                .build()
-        } catch (e: Exception) {
-            throw RuntimeException("Failed to create OkHttpClient", e)
+            val request = requestBuilder.build()
+            chain.proceed(request)
         }
-    }
+        .connectTimeout(30, TimeUnit.SECONDS)
+        .readTimeout(30, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
+        .build()
 
-    // 4. Два разных Retrofit инстанса
-    private val authRetrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl(SUPABASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(createAuthClient())
-            .build()
-    }
+    // Retrofit для авторизации (использует основной URL)
+    private val retrofitAuth = Retrofit.Builder()
+        .baseUrl(SUPABASE_URL) // Базовый URL для auth
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(client)
+        .build()
 
-    private val restApiRetrofit: Retrofit by lazy {
-        Retrofit.Builder()
-            .baseUrl(SUPABASE_URL)
-            .addConverterFactory(GsonConverterFactory.create())
-            .client(createRestApiClient())
-            .build()
-    }
+    // Retrofit для товаров и категорий (использует REST URL)
+    private val retrofitRest = Retrofit.Builder()
+        .baseUrl(REST_URL) // Базовый URL для REST API
+        .addConverterFactory(GsonConverterFactory.create())
+        .client(client)
+        .build()
 
-    // 5. Сервисы используют разные клиенты
-    val userManagementService: UserManagementService by lazy {
-        authRetrofit.create(UserManagementService::class.java)
-    }
-
-    val productsService: ProductsService by lazy {
-        restApiRetrofit.create(ProductsService::class.java)
-    }
-
-    val categoriesService: CategoriesService by lazy {
-        restApiRetrofit.create(CategoriesService::class.java)
-    }
+    // Сервисы
+    val userManagementService = retrofitAuth.create(UserManagementService::class.java)
+    val productsService = retrofitRest.create(ProductsService::class.java)
+    val categoriesService = retrofitRest.create(CategoriesService::class.java)
 }

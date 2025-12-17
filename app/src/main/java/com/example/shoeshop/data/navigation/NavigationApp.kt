@@ -4,8 +4,11 @@ import EmailVerificationScreen
 import RecoveryVerificationScreen
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
+import com.example.shoeshop.ui.screens.CategoryProductsScreen
 import com.example.shoeshop.ui.screens.ForgotPasswordScreen
 import com.example.shoeshop.ui.screens.HomeScreen
 import com.example.shoeshop.ui.screens.OnboardScreen
@@ -57,6 +60,49 @@ fun NavigationApp(navController: NavHostController) {
 
         composable("home") {
             HomeScreen({},{},{})
+        }
+
+        composable("home") {
+            HomeScreen(
+                onProductClick = { product ->
+                    // Навигация на экран товара
+                    // navController.navigate("product/${product.id}")
+                },
+                onCartClick = {
+                    // Навигация на корзину
+                    // navController.navigate("cart")
+                },
+                onSearchClick = {
+                    // Навигация на поиск
+                    // navController.navigate("search")
+                },
+                onCategoryClick = { categoryName ->
+                    // Навигация на экран категории
+                    navController.navigate("category/$categoryName")
+                }
+            )
+        }
+
+        composable(
+            route = "category/{categoryName}",
+            arguments = listOf(navArgument("categoryName") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
+            CategoryProductsScreen(
+                categoryName = categoryName,
+                onProductClick = { product ->
+                    // Навигация на экран товара
+                    // navController.navigate("product/${product.id}")
+                },
+                onBackClick = { navController.popBackStack() },
+                onCategorySelected = { newCategoryName ->
+                    // Навигация на другую категорию
+                    navController.navigate("category/$newCategoryName") {
+                        // Очищаем стек чтобы не было много экранов категорий
+                        popUpTo("category/{categoryName}") { inclusive = true }
+                    }
+                }
+            )
         }
 
     }
