@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import com.example.shoeshop.data.RetrofitInstance
+import com.example.shoeshop.data.SessionManager
 import com.example.shoeshop.data.model.ChangePasswordRequest
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -104,8 +105,8 @@ class SignInViewModel : ViewModel() {
     }
 
     private fun saveUserData(user: com.example.myfirstproject.data.model.User) {
-        // TODO: Сохранить данные пользователя
-        Log.d("Auth", "User data saved: ${user.email}")
+        SessionManager.userId = user.id
+        Log.d("Auth", "User data saved: email=${user.email}, id=${user.id}")
     }
 
     fun resetState() {

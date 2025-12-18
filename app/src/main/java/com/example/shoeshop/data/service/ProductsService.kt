@@ -20,6 +20,12 @@ interface ProductsService {
         @Query("category_id") categoryId: String,  // УБЕРИТЕ значение по умолчанию!
         @Query("order") order: String = "title.asc"
     ): Response<List<Product>>
+    @GET("products")
+    suspend fun getProductById(
+        @Query("id") idFilter: String,          // "eq.<uuid>"
+        @Query("select") select: String = "*",
+        @Query("limit") limit: Int = 1
+    ): Response<List<Product>>
 }
 
 interface CategoriesService {

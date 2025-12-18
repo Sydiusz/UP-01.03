@@ -1,9 +1,11 @@
 package com.example.shoeshop.ui.viewmodel
 
-
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.shoeshop.data.SessionManager
 import com.example.shoeshop.data.model.Product
+import com.example.shoeshop.data.repository.FavouriteRepository
 import com.example.shoeshop.data.repository.ProductsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,7 +13,8 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class ProductDetailViewModel(
-    private val repository: ProductsRepository = ProductsRepository()
+    private val repository: ProductsRepository = ProductsRepository(),
+    private val favouriteRepository: FavouriteRepository = FavouriteRepository()
 ) : ViewModel() {
 
     private val _product = MutableStateFlow<Product?>(null)
@@ -29,13 +32,30 @@ class ProductDetailViewModel(
             _error.value = null
 
             try {
-                // Предполагаем, что у репозитория есть метод getProductById
-                // Если нет - нужно его добавить
                 val result = repository.getProductById(productId)
                 if (result.isSuccess) {
-                    _product.value = result.getOrNull()
+                    var loaded = result.getOrNull()
+
+                    // если есть categoryId — подтянем имя категории
+                    if (loaded?.categoryId != null) {
+                        try {
+                            val categoriesResult = repository.getCategories()
+                            if (categoriesResult.isSuccess) {
+                                val categories = categoriesResult.getOrDefault(emptyList())
+                                val category = categories.firstOrNull { it.id == loaded.categoryId }
+                                if (category != null) {
+                                    loaded = loaded.copy(displayCategory = category.name)
+                                }
+                            }
+                        } catch (_: Exception) {
+                            // если не получилось, просто оставим id
+                        }
+                    }
+
+                    _product.value = loaded
                 } else {
-                    _error.value = result.exceptionOrNull()?.message ?: "Не удалось загрузить товар"
+                    _error.value = result.exceptionOrNull()?.message
+                        ?: "Не удалось загрузить товар"
                 }
             } catch (e: Exception) {
                 _error.value = "Ошибка: ${e.message}"
@@ -45,10 +65,35 @@ class ProductDetailViewModel(
         }
     }
 
+
+
     fun toggleFavorite(product: Product) {
+        val userId = SessionManager.userId ?: run {
+            _error.value = "Пользователь не авторизован"
+            return
+        }
+
         viewModelScope.launch {
-            // TODO: Обновить состояние избранного в репозитории
-            _product.value = product.copy(isFavorite = !product.isFavorite)
+            // 1. Узнаём текущее состояние в БД
+            val favResult = favouriteRepository.isFavorite(userId, product.id)
+            val isFavoriteInDb = favResult.getOrDefault(false)
+
+            // 2. Оптимистично меняем в UI
+            _product.value = product.copy(isFavorite = !isFavoriteInDb)
+
+            // 3. В БД либо добавляем, либо удаляем
+            val result = if (!isFavoriteInDb) {
+                favouriteRepository.addFavorite(userId, product.id)
+            } else {
+                favouriteRepository.removeFavorite(userId, product.id)
+            }
+
+            if (result.isFailure) {
+                // откат, если запрос не удался
+                _product.value = product
+                _error.value =
+                    "Не удалось обновить избранное: ${result.exceptionOrNull()?.message}"
+            }
         }
     }
 }

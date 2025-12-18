@@ -1,7 +1,6 @@
 // ui/screens/ProductDetailScreen.kt
 package com.example.shoeshop.ui.screens
 
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -11,17 +10,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
-import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,12 +32,10 @@ fun ProductDetailScreen(
     productId: String,
     onBackClick: () -> Unit,
     onAddToCart: (Product) -> Unit,
-    onToggleFavorite: (Product) -> Unit
+    onToggleFavorite: (Product) -> Unit = {}
 ) {
-    // Используем ViewModel для загрузки данных
     val viewModel: ProductDetailViewModel = viewModel()
 
-    // Загружаем продукт при первом показе
     LaunchedEffect(productId) {
         viewModel.loadProduct(productId)
     }
@@ -56,19 +49,21 @@ fun ProductDetailScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = "Детали товара",
+                        text = "",
                         style = AppTypography.bodyMedium16
                     )
                 },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Назад")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Назад"
+                        )
                     }
                 },
                 actions = {
-                    // Круглая кнопка корзины в правом верхнем углу
                     IconButton(
-                        onClick = { /* TODO: Перейти в корзину */ },
+                        onClick = { /* переход в корзину */ },
                         modifier = Modifier
                             .size(40.dp)
                             .clip(CircleShape)
@@ -93,7 +88,7 @@ fun ProductDetailScreen(
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .background(Color.White) // БЕЛЫЙ ФОН
+                .background(Color.White)
                 .padding(paddingValues)
         ) {
             when {
@@ -112,10 +107,10 @@ fun ProductDetailScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.Center
                     ) {
-                        Text(text = "Ошибка загрузки", color = Color.Red)
-                        Text(text = error ?: "Неизвестная ошибка")
+                        Text(text = "Ошибка", color = Color.Red)
+                        Text(text = error ?: "")
                         Button(onClick = { viewModel.loadProduct(productId) }) {
-                            Text("Повторить")
+                            Text(text = "Повторить")
                         }
                     }
                 }
@@ -124,7 +119,9 @@ fun ProductDetailScreen(
                     ProductDetailContent(
                         product = product!!,
                         onAddToCart = onAddToCart,
-                        onToggleFavorite = { onToggleFavorite(product!!) },
+                        onToggleFavorite = {
+                            viewModel.toggleFavorite(product!!)
+                        },
                         modifier = Modifier.fillMaxSize()
                     )
                 }
@@ -134,7 +131,7 @@ fun ProductDetailScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        Text("Товар не найден")
+                        Text(text = "Товар не найден")
                     }
                 }
             }
@@ -152,111 +149,64 @@ fun ProductDetailContent(
     var isDescriptionExpanded by remember { mutableStateOf(false) }
     var isFavorite by remember { mutableStateOf(product.isFavorite) }
 
+    val categoryText = product.displayCategory
+        ?: product.categoryId
+        ?: "Категория не указана"
+
     Column(
         modifier = modifier
-            .background(Color.White) // БЕЛЫЙ ФОН
+            .background(Color.White)
             .verticalScroll(rememberScrollState())
     ) {
-        // Информация о товаре (сверху)
+        // Заголовок + категория + цена
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White) // БЕЛЫЙ ФОН
+                .background(Color.White)
                 .padding(horizontal = 16.dp, vertical = 16.dp)
         ) {
-            // Название товара
             Text(
                 text = product.name,
-                style = AppTypography.headingRegular26.copy(
-                    color = Color.Black
-                ),
+                style = AppTypography.headingRegular26.copy(color = Color.Black),
+                modifier = Modifier.padding(bottom = 4.dp)
+            )
+
+            Text(
+                text = categoryText,
+                style = AppTypography.bodyRegular14.copy(color = Color.Gray),
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // Категория - ПРОВЕРЬТЕ ПОЛЕ displayCategory
-            val category = product.displayCategory ?: product.categoryId?.let {
-                // Если displayCategory пустой, можно получить имя категории из categoryId
-                getCategoryNameById(it) // Нужно реализовать эту функцию
-            }
-
-            if (category != null) {
-                Text(
-                    text = category,
-                    style = AppTypography.bodyRegular14.copy(
-                        color = Color.Gray
-                    ),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
-
-            // Цена
             Text(
                 text = product.getFormattedPrice(),
-                style = AppTypography.bodyRegular24.copy(
-                    color = MaterialTheme.colorScheme.onSurface
-                ),
+                style = AppTypography.bodyRegular24.copy(color = MaterialTheme.colorScheme.onSurface),
                 modifier = Modifier.padding(bottom = 16.dp)
             )
         }
 
-        // Фотка товара
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(300.dp)
-                .background(Color(0xFFF5F5F5))
-        ) {
-            if (product.imageResId != null) {
-                Image(
-                    painter = painterResource(id = product.imageResId),
-                    contentDescription = product.name,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
-            } else {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = product.name.take(2).uppercase(),
-                        style = AppTypography.headingRegular32.copy(
-                            fontSize = 48.sp,
-                            color = Color.Gray
-                        )
-                    )
-                }
-            }
-        }
-
-        // Описание товара
+        // Описание
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White) // БЕЛЫЙ ФОН
+                .background(Color.White)
                 .padding(16.dp)
         ) {
-
-            // Описание с ограничением по строкам
             Text(
                 text = product.description,
-                style = AppTypography.bodyRegular16.copy(
-                    color = Color.Black
-                ),
+                style = AppTypography.bodyRegular16.copy(color = Color.Black),
                 lineHeight = 24.sp,
                 maxLines = if (isDescriptionExpanded) Int.MAX_VALUE else 3,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.padding(bottom = 8.dp)
             )
 
-            // Кнопка "Подробнее"
             if (product.description.lines().size > 3 || product.description.length > 150) {
                 TextButton(
                     onClick = { isDescriptionExpanded = !isDescriptionExpanded },
                     modifier = Modifier.padding(bottom = 24.dp)
                 ) {
                     Text(
-                        text = if (isDescriptionExpanded) stringResource(id = R.string.hide) else stringResource(id = R.string.more_details),
+                        text = if (isDescriptionExpanded) "Скрыть" else "Подробнее",
                         color = MaterialTheme.colorScheme.primary
                     )
                 }
@@ -265,11 +215,11 @@ fun ProductDetailContent(
 
         Spacer(modifier = Modifier.weight(1f))
 
-        // Кнопка добавления в корзину (внизу)
+        // Нижняя панель: избранное + кнопка "в корзину"
         Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Color.White) // БЕЛЫЙ ФОН
+                .background(Color.White)
                 .padding(16.dp)
         ) {
             Row(
@@ -277,7 +227,6 @@ fun ProductDetailContent(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Круглая кнопка избранного слева
                 IconButton(
                     onClick = {
                         isFavorite = !isFavorite
@@ -296,7 +245,6 @@ fun ProductDetailContent(
                     )
                 }
 
-                // Кнопка добавления в корзину справа
                 Button(
                     onClick = { onAddToCart(product) },
                     modifier = Modifier
@@ -314,7 +262,7 @@ fun ProductDetailContent(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.bag_2),
-                            contentDescription = "Добавить в корзину",
+                            contentDescription = "В корзину",
                             tint = Color.White,
                             modifier = Modifier
                                 .size(24.dp)
@@ -328,18 +276,5 @@ fun ProductDetailContent(
                 }
             }
         }
-    }
-}
-
-// Функция для получения имени категории по ID
-@Composable
-fun getCategoryNameById(categoryId: String): String? {
-    // TODO: Реализуйте получение имени категории
-    // Можно через ViewModel или локально
-    return when (categoryId) {
-        "1" -> "Кроссовки"
-        "2" -> "Ботинки"
-        "3" -> "Кеды"
-        else -> null
     }
 }

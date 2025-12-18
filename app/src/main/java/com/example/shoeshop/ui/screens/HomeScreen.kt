@@ -281,7 +281,7 @@ fun HomeScreen(
                                     products = uiState.popularProducts,
                                     onProductClick = onProductClick,
                                     onFavoriteClick = { product ->
-                                        // Обработка добавления в избранное
+                                        viewModel.toggleFavorite(product)
                                     }
                                 )
                             }

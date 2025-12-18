@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.shoeshop.ui.screens.CategoryProductsScreen
+import com.example.shoeshop.ui.screens.FavoritesScreen
 import com.example.shoeshop.ui.screens.ForgotPasswordScreen
 import com.example.shoeshop.ui.screens.HomeScreen
 import com.example.shoeshop.ui.screens.OnboardScreen
@@ -16,7 +17,6 @@ import com.example.shoeshop.ui.screens.ProductDetailScreen
 import com.example.shoeshop.ui.screens.RegisterAccountScreen
 import com.example.shoeshop.ui.screens.SignInScreen
 
-// В NavigationApp обновите маршруты
 @Composable
 fun NavigationApp(navController: NavHostController) {
     NavHost(
@@ -44,8 +44,7 @@ fun NavigationApp(navController: NavHostController) {
             )
         }
         composable("reset_password") {
-            RecoveryVerificationScreen({},{}
-            )
+            RecoveryVerificationScreen({}, {})
         }
         composable("forgot_password") {
             ForgotPasswordScreen(
@@ -54,7 +53,7 @@ fun NavigationApp(navController: NavHostController) {
         }
 
         composable("start_menu") {
-            OnboardScreen (
+            OnboardScreen(
                 onGetStartedClick = { navController.navigate("sign_up") },
             )
         }
@@ -62,20 +61,20 @@ fun NavigationApp(navController: NavHostController) {
         composable("home") {
             HomeScreen(
                 onProductClick = { product ->
-                    // Навигация на экран товара
                     navController.navigate("product/${product.id}")
                 },
                 onCartClick = {
-                    // Навигация на корзину
                     // navController.navigate("cart")
                 },
                 onSearchClick = {
-                    // Навигация на поиск
                     // navController.navigate("search")
                 },
+                onSettingsClick = { /* TODO */ },
                 onCategoryClick = { categoryName ->
-                    // Навигация на экран категории
                     navController.navigate("category/$categoryName")
+                },
+                onFavoritesClick = {
+                    navController.navigate("favorites")
                 }
             )
         }
@@ -88,21 +87,17 @@ fun NavigationApp(navController: NavHostController) {
             CategoryProductsScreen(
                 categoryName = categoryName,
                 onProductClick = { product ->
-                    // Навигация на экран товара
                     navController.navigate("product/${product.id}")
                 },
                 onBackClick = { navController.popBackStack() },
                 onCategorySelected = { newCategoryName ->
-                    // Навигация на другую категорию
                     navController.navigate("category/$newCategoryName") {
-                        // Очищаем стек чтобы не было много экранов категорий
                         popUpTo("category/{categoryName}") { inclusive = true }
                     }
                 }
             )
         }
 
-        // Добавьте новый маршрут для деталей товара
         composable(
             route = "product/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.StringType })
@@ -111,12 +106,17 @@ fun NavigationApp(navController: NavHostController) {
             ProductDetailScreen(
                 productId = productId,
                 onBackClick = { navController.popBackStack() },
-                onAddToCart = {
-                },
-                onToggleFavorite = {
-                }
+                onAddToCart = { /* TODO */ }
             )
         }
 
+        composable("favorites") {
+            FavoritesScreen(
+                onBackClick = { navController.popBackStack() },
+                onProductClick = { product ->
+                    navController.navigate("product/${product.id}")
+                }
+            )
+        }
     }
 }

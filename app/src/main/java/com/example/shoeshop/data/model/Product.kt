@@ -21,14 +21,12 @@ data class Product(
     @SerializedName("is_best_seller")
     val isBestSeller: Boolean = false,
 
-
-    // Измените типы на nullable или инициализируйте по умолчанию
+    // ВСЕ дополнительные поля — безопасные
     val displayCategory: String? = null,
-    val originalPrice: String = "",  // Инициализируйте пустой строкой
-    val imageUrl: String = "",
+    val originalPrice: String? = null,
+    val imageUrl: String? = null,
     val imageResId: Int? = null,
-
-    val isFavorite: Boolean = false // Добавляем поле для состояния избранного
+    val isFavorite: Boolean = false
 ) {
     fun getFormattedPrice(): String {
         return "₽${String.format("%.2f", price)}"

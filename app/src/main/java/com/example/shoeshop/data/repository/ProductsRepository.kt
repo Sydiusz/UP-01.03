@@ -15,44 +15,19 @@ class ProductsRepository {
 
     suspend fun getAllProducts(): Result<List<Product>> {
         return try {
-            val response = productsService.getProducts()
-            android.util.Log.d(TAG, "getAllProducts: код ${response.code()}")
-
+            val response = productsService.getProducts(
+                select = "id,title,cost,description,category_id,is_best_seller" // только нужные поля
+            )
             if (response.isSuccessful) {
-                val body = response.body()
-                android.util.Log.d(TAG, "getAllProducts: получено ${body?.size ?: 0} товаров")
-
-                // Подробное логирование структуры
-                body?.take(3)?.forEachIndexed { index, product ->
-                    android.util.Log.d(TAG,
-                        "Товар $index: " +
-                                "id=${product.id}, " +
-                                "name=${product.name}, " +
-                                "price=${product.price}, " +
-                                "categoryId=${product.categoryId}, " +
-                                "isBestSeller=${product.isBestSeller}, " +
-                                "description=${product.description.take(30)}..."
-                    )
-                }
-
-                // Если товары есть, но categoryId = null, проверьте модель Product
-                body?.firstOrNull()?.let { firstProduct ->
-                    if (firstProduct.categoryId == null) {
-                        android.util.Log.w(TAG, "ВНИМАНИЕ: categoryId = null! Проверьте модель Product")
-                    }
-                }
-
-                Result.success(body ?: emptyList())
+                Result.success(response.body() ?: emptyList())
             } else {
-                val errorBody = response.errorBody()?.string()
-                android.util.Log.e(TAG, "Ошибка getAllProducts: ${response.code()}, $errorBody")
-                Result.failure(Exception("HTTP ${response.code()}: $errorBody"))
+                Result.failure(Exception("HTTP ${response.code()}: ${response.errorBody()?.string()}"))
             }
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Исключение getAllProducts: ${e.message}", e)
             Result.failure(e)
         }
     }
+
 
     suspend fun getBestSellers(): Result<List<Product>> {
         return try {
@@ -127,31 +102,20 @@ class ProductsRepository {
     // data/repository/ProductsRepository.kt
     suspend fun getProductById(productId: String): Result<Product> {
         return try {
-            android.util.Log.d(TAG, "Запрос товара по ID: $productId")
+            android.util.Log.d(TAG, "Запрос товара по ID (REST): $productId")
+            val response = productsService.getProductById(idFilter = "eq.$productId")
 
-            // Сначала получим все товары
-            val allProductsResult = getAllProducts()
-
-            if (allProductsResult.isSuccess) {
-                val allProducts = allProductsResult.getOrDefault(emptyList())
-                android.util.Log.d(TAG, "Всего товаров загружено: ${allProducts.size}")
-
-                // Найдем товар по ID
-                val product = allProducts.find { it.id == productId }
-
-                if (product != null) {
-                    android.util.Log.d(TAG, "Товар найден: ${product.name}, цена: ${product.price}, ID: ${product.id}")
-                    Result.success(product)
+            if (response.isSuccessful) {
+                val body = response.body().orEmpty()
+                if (body.isNotEmpty()) {
+                    Result.success(body.first())
                 } else {
-                    android.util.Log.e(TAG, "Товар с ID '$productId' не найден в списке. Доступные ID:")
-                    allProducts.take(5).forEach { p ->
-                        android.util.Log.d(TAG, "  - ${p.id}: ${p.name}")
-                    }
                     Result.failure(Exception("Товар с ID '$productId' не найден"))
                 }
             } else {
-                android.util.Log.e(TAG, "Не удалось загрузить список товаров для поиска по ID")
-                Result.failure(Exception("Не удалось загрузить данные"))
+                val errorBody = response.errorBody()?.string()
+                android.util.Log.e(TAG, "Ошибка getProductById: ${response.code()}, $errorBody")
+                Result.failure(Exception("HTTP ${response.code()}: $errorBody"))
             }
         } catch (e: Exception) {
             android.util.Log.e(TAG, "Исключение getProductById: ${e.message}", e)
