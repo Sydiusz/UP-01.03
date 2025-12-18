@@ -1,5 +1,9 @@
 package com.example.shoeshop.ui.screens
 
+import android.graphics.Bitmap
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -10,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -18,11 +23,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.R
 import com.example.shoeshop.ui.components.DisableButton
+import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.ProfileViewModel
-import com.example.shoeshop.data.SessionManager
 
 @Composable
 fun ProfileScreen(
@@ -51,18 +55,28 @@ fun ProfileScreen(
         mutableStateOf(currentProfile?.phone ?: "")
     }
 
+    // локальное фото профиля из камеры
+    var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    // лаунчер камеры: возвращает preview Bitmap
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicturePreview()
+    ) { bitmap ->
+        if (bitmap != null) {
+            profileBitmap = bitmap
+            // здесь при необходимости можешь вызвать viewModel.savePhoto(bitmap)
+        }
+    }
+
     val original = currentProfile
     val hasChanges by remember(name, lastName, address, phone, original) {
         derivedStateOf {
             if (original == null) {
-                // Первый раз создаём профиль: включаем кнопку,
-                // когда пользователь что‑то ввёл
                 name.isNotBlank() ||
                         lastName.isNotBlank() ||
                         address.isNotBlank() ||
                         phone.isNotBlank()
             } else {
-                // Профиль уже есть: сравниваем с тем, что пришло с сервера
                 name != (original.firstname ?: "") ||
                         lastName != (original.lastname ?: "") ||
                         address != (original.address ?: "") ||
@@ -113,7 +127,10 @@ fun ProfileScreen(
                     ) {
                         Icon(
                             painter = painterResource(id = R.drawable.edit),
-                            contentDescription = if (isEditing) stringResource(R.string.cancel) else "Изменить",
+                            contentDescription = if (isEditing)
+                                stringResource(R.string.cancel)
+                            else
+                                stringResource(R.string.edit),
                             tint = Color.Gray
                         )
                     }
@@ -129,9 +146,33 @@ fun ProfileScreen(
                         modifier = Modifier
                             .size(100.dp)
                             .clip(CircleShape)
-                            .background(Color(0xFFE0E0E0))
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
+                            .background(Color(0xFFE0E0E0)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        // если есть фото из камеры — показываем его
+                        if (profileBitmap != null) {
+                            Image(
+                                bitmap = profileBitmap!!.asImageBitmap(),
+                                contentDescription = stringResource(R.string.profile_photo),
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    TextButton(
+                        onClick = { cameraLauncher.launch(null) }
+                    ) {
+                        Text(
+                            text = stringResource(R.string.change_profile_photo),
+                            style = AppTypography.bodyRegular14,
+                            color = Color(0xFF2196F3)
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     Text(
                         text = listOf(name, lastName).filter { it.isNotBlank() }.joinToString(" "),
                         style = AppTypography.bodyRegular20
@@ -143,7 +184,7 @@ fun ProfileScreen(
                         EditableField(
                             label = stringResource(id = R.string.your_name),
                             value = name,
-                            onValueChange = { name = it }
+                            onValueChange = { name = it }       // сюда можно вводить русские символы
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         EditableField(
@@ -207,7 +248,6 @@ private fun InputField(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Подпись
         Text(
             text = label,
             style = AppTypography.bodyMedium16.copy(
@@ -216,7 +256,6 @@ private fun InputField(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Поле (non-editable)
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(8.dp),
@@ -250,7 +289,6 @@ private fun EditableField(
     Column(
         modifier = Modifier.fillMaxWidth()
     ) {
-        // Подпись
         Text(
             text = label,
             style = AppTypography.bodyMedium16.copy(
@@ -259,10 +297,9 @@ private fun EditableField(
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Поле для редактирования
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = onValueChange,     // здесь вводятся и русские, и латинские символы
             modifier = Modifier.fillMaxWidth(),
             textStyle = AppTypography.bodyRegular16,
             shape = RoundedCornerShape(8.dp),

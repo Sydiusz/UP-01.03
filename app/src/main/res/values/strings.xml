@@ -84,5 +84,8 @@
     <string name="already_verified">Already verified? </string>
     <string name="hide">Hide</string>
     <string name="not_specified">Not specified</string>
+    <string name="change_profile_photo">Change your profile photo</string>
+    <string name="profile_photo">Profile Photo</string>
+    <string name="edit">Edit</string>
 
 </resources>
