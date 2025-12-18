@@ -156,7 +156,7 @@ fun CategoryProductsScreen(
                                         }
                                     },
                                     onAddToCartClick = {
-                                        homeViewModel.toggleCart(product)   // метод во ViewModel, который добавляет/удаляет из корзины
+                                        homeViewModel.toggleCart(product)
                                         categoryProducts.value = categoryProducts.value.map {
                                             if (it.id == product.id) it.copy(isInCart = !it.isInCart) else it
                                         }

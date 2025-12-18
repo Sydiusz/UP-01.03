@@ -1,6 +1,7 @@
 package com.example.shoeshop.data
 
 import com.example.myfirstproject.data.service.UserManagementService
+import com.example.shoeshop.data.service.CartService
 import com.example.shoeshop.data.service.CategoriesService
 import com.example.shoeshop.data.service.FavouriteService
 import com.example.shoeshop.data.service.ProductsService
@@ -86,6 +87,8 @@ object RetrofitInstance {
     val categoriesService = retrofitRest.create(CategoriesService::class.java)
     val favouriteService: FavouriteService = retrofitRest.create(FavouriteService::class.java)
     val profileService: ProfileService = retrofitRest.create(ProfileService::class.java)
+
+    val cartService: CartService = retrofitRest.create(CartService::class.java)
 
 
 

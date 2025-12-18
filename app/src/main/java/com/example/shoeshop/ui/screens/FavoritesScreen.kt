@@ -1,3 +1,4 @@
+// ui/screens/FavoritesScreen.kt
 package com.example.shoeshop.ui.screens
 
 import androidx.compose.foundation.background
@@ -14,22 +15,27 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.shoeshop.R
 import com.example.shoeshop.data.model.Product
 import com.example.shoeshop.ui.components.BackButton
 import com.example.shoeshop.ui.components.ProductCard
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.FavoritesViewModel
-import com.example.shoeshop.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(
     onBackClick: () -> Unit,
     onProductClick: (Product) -> Unit,
-    onToggleFavoriteInHome: (Product) -> Unit
+    onToggleFavoriteInHome: (Product) -> Unit,
+    onToggleCartInHome: (Product) -> Unit
 ) {
     val viewModel: FavoritesViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.loadFavorites()
+    }
 
     Scaffold(
         topBar = {
@@ -88,11 +94,16 @@ fun FavoritesScreen(
                                 product = product,
                                 onProductClick = { onProductClick(product) },
                                 onFavoriteClick = {
+                                    // 1) локально переключаем избранное
                                     viewModel.toggleFavorite(product)
+                                    // 2) синхронизируем с HomeViewModel
                                     onToggleFavoriteInHome(product)
                                 },
                                 onAddToCartClick = {
-                                    // TODO: добавить/удалить в корзину через ViewModel, когда будешь делать корзину
+                                    // 1) глобально обновляем корзину (HomeViewModel + Supabase)
+                                    onToggleCartInHome(product)
+                                    // 2) локально переключаем иконку в избранном
+                                    viewModel.toggleCartLocal(product.id)
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             )

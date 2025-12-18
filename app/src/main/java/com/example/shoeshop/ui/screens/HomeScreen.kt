@@ -292,7 +292,11 @@ fun HomeScreen(
                                     onProductClick = onProductClick,
                                     onFavoriteClick = { product ->
                                         homeViewModel.toggleFavorite(product)
+                                    },
+                                    onAddToCartClick = { product ->
+                                        homeViewModel.toggleCart(product)      // ← тут вызываем ViewModel
                                     }
+
                                 )
                             }
 
@@ -310,8 +314,12 @@ fun HomeScreen(
                             onProductClick = onProductClick,
                             onToggleFavoriteInHome = { product ->
                                 homeViewModel.toggleFavorite(product)
+                            },
+                            onToggleCartInHome = { product ->
+                                homeViewModel.toggleCart(product)
                             }
                         )
+
                     }
 
                     2 -> {
@@ -387,7 +395,8 @@ private fun CategoryChip(
 private fun PopularSection(
     products: List<Product>,
     onProductClick: (Product) -> Unit,
-    onFavoriteClick: (Product) -> Unit
+    onFavoriteClick: (Product) -> Unit,
+    onAddToCartClick: (Product) -> Unit
 ) {
     Column {
         // Заголовок раздела
@@ -434,9 +443,7 @@ private fun PopularSection(
                         product = product,
                         onProductClick = { onProductClick(product) },
                         onFavoriteClick = { onFavoriteClick(product) },
-                        onAddToCartClick = {
-                                   // реализуешь во HomeViewModel
-                        },
+                        onAddToCartClick = { onAddToCartClick(product) },  // ← вместо homeViewModel
                         modifier = Modifier
                     )
                 }

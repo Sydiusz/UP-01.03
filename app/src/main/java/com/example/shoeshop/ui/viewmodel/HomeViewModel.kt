@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.shoeshop.data.SessionManager
 import com.example.shoeshop.data.model.Category
 import com.example.shoeshop.data.model.Product
+import com.example.shoeshop.data.repository.CartRepository
 import com.example.shoeshop.data.repository.FavouriteRepository
 import com.example.shoeshop.data.repository.ProductsRepository
 import kotlinx.coroutines.async
@@ -30,13 +31,14 @@ data class HomeUiState(
 
 class HomeViewModel(
     private val repository: ProductsRepository = ProductsRepository(),
-    private val favouriteRepository: FavouriteRepository = FavouriteRepository()
+    private val favouriteRepository: FavouriteRepository = FavouriteRepository(),
+    private val cartRepository: CartRepository = CartRepository()
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
 
-    private var _isDataLoaded = MutableStateFlow(false)
+    private val _isDataLoaded = MutableStateFlow(false)
     val isDataLoaded: StateFlow<Boolean> = _isDataLoaded.asStateFlow()
 
     init {
@@ -59,12 +61,9 @@ class HomeViewModel(
                 val categoriesDeferred = async { repository.getCategories() }
                 val bestSellersDeferred = async { repository.getBestSellers() }
 
-                val categoriesResult: Result<List<Category>>
-                val bestSellersResult: Result<List<Product>>
-
                 val results = awaitAll(categoriesDeferred, bestSellersDeferred)
-                categoriesResult = results[0] as Result<List<Category>>
-                bestSellersResult = results[1] as Result<List<Product>>
+                val categoriesResult = results[0] as Result<List<Category>>
+                val bestSellersResult = results[1] as Result<List<Product>>
 
                 // 1. Категории
                 if (categoriesResult.isSuccess) {
@@ -98,6 +97,9 @@ class HomeViewModel(
                     state.copy(popularProducts = bestSellers)
                 }
 
+                // 4. Подставляем флаг корзины
+                syncCartFlags()
+
                 _isDataLoaded.value = true
 
             } catch (e: Exception) {
@@ -111,6 +113,26 @@ class HomeViewModel(
         }
     }
 
+    private suspend fun syncCartFlags() {
+        val cartResult = cartRepository.getCartItemsForCurrentUser()
+        if (cartResult.isSuccess) {
+            val cartItems = cartResult.getOrDefault(emptyList())
+            val productIdsInCart = cartItems.map { it.product_id }.toSet()
+
+            _uiState.update { state ->
+                state.copy(
+                    popularProducts = state.popularProducts.map { p ->
+                        p.copy(isInCart = productIdsInCart.contains(p.id))
+                    }
+                )
+            }
+        }
+    }
+    fun refreshCartFlags() {
+        viewModelScope.launch {
+            syncCartFlags()
+        }
+    }
     fun selectCategory(categoryName: String) {
         Log.d(TAG, "$LOG_PREFIX Выбрана категория: $categoryName")
 
@@ -144,13 +166,23 @@ class HomeViewModel(
 
             var products = baseResult.getOrDefault(emptyList())
 
-            // подставляем избранное так же, как в loadData
+            // избранное
             val userId = SessionManager.userId
             if (userId != null && products.isNotEmpty()) {
                 val favIdsResult = favouriteRepository.getFavoritesForUser(userId)
                 val favIds = favIdsResult.getOrDefault(emptyList())
                 products = products.map { p ->
                     p.copy(isFavorite = favIds.contains(p.id))
+                }
+            }
+
+            // флаг корзины
+            val cartResult = cartRepository.getCartItemsForCurrentUser()
+            if (cartResult.isSuccess) {
+                val cartItems = cartResult.getOrDefault(emptyList())
+                val productIdsInCart = cartItems.map { it.product_id }.toSet()
+                products = products.map { p ->
+                    p.copy(isInCart = productIdsInCart.contains(p.id))
                 }
             }
 
@@ -161,10 +193,40 @@ class HomeViewModel(
     }
 
     fun toggleCart(product: Product) {
+        val userId = SessionManager.userId ?: return
+
         viewModelScope.launch {
-            // здесь твоя логика добавления/удаления из корзины + обновление uiState.products
+            val currentlyInCart = product.isInCart
+
+            // оптимистично обновляем UI
+            _uiState.update { state ->
+                state.copy(
+                    popularProducts = state.popularProducts.map { p ->
+                        if (p.id == product.id) p.copy(isInCart = !currentlyInCart) else p
+                    }
+                )
+            }
+
+            val result = if (!currentlyInCart) {
+                cartRepository.addToCart(product.id)
+            } else {
+                cartRepository.removeFromCartByProduct(product.id)
+            }
+
+            if (result.isFailure) {
+                Log.e(TAG, "$LOG_PREFIX toggleCart error: ${result.exceptionOrNull()?.message}")
+                // откат
+                _uiState.update { state ->
+                    state.copy(
+                        popularProducts = state.popularProducts.map { p ->
+                            if (p.id == product.id) p.copy(isInCart = currentlyInCart) else p
+                        }
+                    )
+                }
+            }
         }
     }
+
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }
@@ -176,6 +238,7 @@ class HomeViewModel(
             val favResult = favouriteRepository.isFavorite(userId, product.id)
             val isFavoriteInDb = favResult.getOrDefault(false)
 
+            // оптимистично
             _uiState.update { state ->
                 val newPopular = state.popularProducts.map {
                     if (it.id == product.id) it.copy(isFavorite = !isFavoriteInDb) else it
@@ -190,6 +253,7 @@ class HomeViewModel(
             }
 
             if (result.isFailure) {
+                // откат
                 _uiState.update { state ->
                     val newPopular = state.popularProducts.map {
                         if (it.id == product.id) it.copy(isFavorite = isFavoriteInDb) else it
@@ -199,6 +263,7 @@ class HomeViewModel(
             }
         }
     }
+
     fun resetSelectedCategory() {
         _uiState.update { state ->
             state.copy(
