@@ -82,7 +82,7 @@ class FavouriteRepository {
 
             // запрос вида id=in.(id1,id2,...)
             val filter = "in.(${ids.joinToString(",")})"
-            val response = productsService.getProductById(filter)
+            val response = productsService.getProductsByIds(filter)
             if (response.isSuccessful) {
                 val products = response.body().orEmpty().map { it.copy(isFavorite = true) }
                 Result.success(products)

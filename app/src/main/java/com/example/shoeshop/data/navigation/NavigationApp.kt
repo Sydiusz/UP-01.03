@@ -3,6 +3,7 @@ package com.example.shoeshop.data.navigation
 import EmailVerificationScreen
 import RecoveryVerificationScreen
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -16,6 +17,7 @@ import com.example.shoeshop.ui.screens.OnboardScreen
 import com.example.shoeshop.ui.screens.ProductDetailScreen
 import com.example.shoeshop.ui.screens.RegisterAccountScreen
 import com.example.shoeshop.ui.screens.SignInScreen
+import com.example.shoeshop.ui.viewmodel.HomeViewModel
 
 @Composable
 fun NavigationApp(navController: NavHostController) {
@@ -72,9 +74,6 @@ fun NavigationApp(navController: NavHostController) {
                 onSettingsClick = { /* TODO */ },
                 onCategoryClick = { categoryName ->
                     navController.navigate("category/$categoryName")
-                },
-                onFavoritesClick = {
-                    navController.navigate("favorites")
                 }
             )
         }
@@ -107,16 +106,9 @@ fun NavigationApp(navController: NavHostController) {
                 productId = productId,
                 onBackClick = { navController.popBackStack() },
                 onAddToCart = { /* TODO */ }
+                // onToggleFavorite больше не передаём, логика внутри ProductDetailViewModel
             )
         }
 
-        composable("favorites") {
-            FavoritesScreen(
-                onBackClick = { navController.popBackStack() },
-                onProductClick = { product ->
-                    navController.navigate("product/${product.id}")
-                }
-            )
-        }
     }
 }

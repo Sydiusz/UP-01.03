@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -18,6 +19,7 @@ import com.example.shoeshop.ui.components.BackButton
 import com.example.shoeshop.ui.components.ProductCard
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.FavoritesViewModel
+import com.example.shoeshop.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +35,7 @@ fun FavoritesScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Избранное",
+                        text = stringResource(id = R.string.favourite),
                         style = AppTypography.headingRegular32
                     )
                 },

@@ -26,6 +26,11 @@ interface ProductsService {
         @Query("select") select: String = "*",
         @Query("limit") limit: Int = 1
     ): Response<List<Product>>
+    @GET("products")
+    suspend fun getProductsByIds(
+        @Query("id") idsFilter: String, // "in.(id1,id2,...)"
+        @Query("select") select: String = "*"
+    ): Response<List<Product>>
 }
 
 interface CategoriesService {

@@ -32,6 +32,7 @@ import com.example.shoeshop.data.model.Product
 import com.example.shoeshop.data.model.Category
 import com.example.shoeshop.ui.components.ProductCard
 import com.example.shoeshop.ui.theme.AppTypography
+import com.example.shoeshop.ui.viewmodel.FavoritesViewModel
 import com.example.shoeshop.ui.viewmodel.HomeViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -41,13 +42,15 @@ fun HomeScreen(
     onCartClick: () -> Unit,
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
-    onCategoryClick: (String) -> Unit = {} // Новый параметр для навигации на категорию
+    onCategoryClick: (String) -> Unit = {},
 ) {
     var selected by remember { mutableIntStateOf(0) }
 
-    // Используем ViewModel для управления состоянием
+    // Home VM
     val viewModel: HomeViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val favoritesViewModel: FavoritesViewModel = viewModel()
+    val favoritesUiState by favoritesViewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         bottomBar = {
@@ -85,7 +88,10 @@ fun HomeScreen(
 
                         Spacer(modifier = Modifier.width(8.dp))
 
-                        IconButton(onClick = { selected = 1 }) {
+                        IconButton(onClick = {
+                            selected = 1
+                            favoritesViewModel.loadFavorites()   // ← вот это важно
+                        }) {
                             Icon(
                                 painter = painterResource(id = R.drawable.favorite),
                                 contentDescription = "Favorites",
@@ -139,7 +145,7 @@ fun HomeScreen(
             }
         }
     ) { paddingValues ->
-        // Показываем индикатор загрузки
+        // Индикатор загрузки для Home
         if (uiState.isLoading) {
             Box(
                 modifier = Modifier
@@ -152,7 +158,7 @@ fun HomeScreen(
             return@Scaffold
         }
 
-        // Показываем ошибку если есть
+        // Ошибка Home
         uiState.errorMessage?.let { errorMessage ->
             AlertDialog(
                 onDismissRequest = { viewModel.clearError() },
@@ -202,10 +208,12 @@ fun HomeScreen(
                                 .height(48.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color.White)
+                                .clickable { onSearchClick() } // по нажатию открываем поиск
                         ) {
                             OutlinedTextField(
                                 value = "",
                                 onValueChange = {},
+                                enabled = false,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .height(48.dp),
@@ -226,8 +234,8 @@ fun HomeScreen(
                                 colors = OutlinedTextFieldDefaults.colors(
                                     focusedBorderColor = Color.Gray,
                                     unfocusedBorderColor = Color.LightGray,
-                                    focusedContainerColor = Color.White,
-                                    unfocusedContainerColor = Color.White
+                                    disabledBorderColor = Color.LightGray,
+                                    disabledContainerColor = Color.White
                                 )
                             )
                         }
@@ -258,6 +266,7 @@ fun HomeScreen(
             Box(modifier = Modifier.fillMaxSize()) {
                 when (selected) {
                     0 -> {
+                        // Главная: категории + популярное + акции
                         LazyColumn(
                             modifier = Modifier.fillMaxSize(),
                             verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -292,17 +301,15 @@ fun HomeScreen(
                             }
                         }
                     }
+
                     1 -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Избранное",
-                                style = AppTypography.headingRegular32
-                            )
-                        }
+                        // Вкладка "Избранное" – используем готовый экран FavoritesScreen
+                        FavoritesScreen(
+                            onBackClick = { selected = 0 }, // назад — на главную вкладку
+                            onProductClick = onProductClick
+                        )
                     }
+
                     2 -> {
                         Box(
                             modifier = Modifier.fillMaxSize(),
@@ -314,6 +321,7 @@ fun HomeScreen(
                             )
                         }
                     }
+
                     3 -> {
                         ProfileScreen()
                     }

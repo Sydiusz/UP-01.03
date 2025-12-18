@@ -31,8 +31,7 @@ import com.example.shoeshop.ui.viewmodel.ProductDetailViewModel
 fun ProductDetailScreen(
     productId: String,
     onBackClick: () -> Unit,
-    onAddToCart: (Product) -> Unit,
-    onToggleFavorite: (Product) -> Unit = {}
+    onAddToCart: (Product) -> Unit
 ) {
     val viewModel: ProductDetailViewModel = viewModel()
 
@@ -147,7 +146,6 @@ fun ProductDetailContent(
     modifier: Modifier = Modifier
 ) {
     var isDescriptionExpanded by remember { mutableStateOf(false) }
-    var isFavorite by remember { mutableStateOf(product.isFavorite) }
 
     val categoryText = product.displayCategory
         ?: product.categoryId
@@ -228,19 +226,16 @@ fun ProductDetailContent(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(
-                    onClick = {
-                        isFavorite = !isFavorite
-                        onToggleFavorite()
-                    },
+                    onClick = { onToggleFavorite() },
                     modifier = Modifier
                         .size(56.dp)
                         .clip(CircleShape)
                         .background(Color(0xFFF5F5F5))
                 ) {
                     Icon(
-                        imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        imageVector = if (product.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
                         contentDescription = "Избранное",
-                        tint = if (isFavorite) Color.Red else Color.Black,
+                        tint = if (product.isFavorite) Color.Red else Color.Black,
                         modifier = Modifier.size(28.dp)
                     )
                 }

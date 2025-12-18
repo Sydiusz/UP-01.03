@@ -1,6 +1,5 @@
 package com.example.shoeshop.ui.viewmodel
 
-import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.shoeshop.data.SessionManager
@@ -52,6 +51,18 @@ class ProductDetailViewModel(
                         }
                     }
 
+                    // подтягиваем флаг избранного
+                    val userId = SessionManager.userId
+                    if (userId != null && loaded != null) {
+                        try {
+                            val isFavResult = favouriteRepository.isFavorite(userId, loaded.id)
+                            val isFav = isFavResult.getOrDefault(false)
+                            loaded = loaded.copy(isFavorite = isFav)
+                        } catch (_: Exception) {
+                            // если не получилось, просто не трогаем isFavorite
+                        }
+                    }
+
                     _product.value = loaded
                 } else {
                     _error.value = result.exceptionOrNull()?.message
@@ -65,8 +76,6 @@ class ProductDetailViewModel(
         }
     }
 
-
-
     fun toggleFavorite(product: Product) {
         val userId = SessionManager.userId ?: run {
             _error.value = "Пользователь не авторизован"
@@ -74,14 +83,12 @@ class ProductDetailViewModel(
         }
 
         viewModelScope.launch {
-            // 1. Узнаём текущее состояние в БД
             val favResult = favouriteRepository.isFavorite(userId, product.id)
             val isFavoriteInDb = favResult.getOrDefault(false)
 
-            // 2. Оптимистично меняем в UI
+            // оптимистично обновляем UI
             _product.value = product.copy(isFavorite = !isFavoriteInDb)
 
-            // 3. В БД либо добавляем, либо удаляем
             val result = if (!isFavoriteInDb) {
                 favouriteRepository.addFavorite(userId, product.id)
             } else {

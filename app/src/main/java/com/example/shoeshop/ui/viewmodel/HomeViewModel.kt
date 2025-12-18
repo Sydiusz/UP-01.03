@@ -45,8 +45,6 @@ class HomeViewModel(
     }
 
     fun loadData() {
-        if (_isDataLoaded.value) return
-        // Если данные уже загружены, повторно не грузим
         if (_isDataLoaded.value) {
             Log.d(TAG, "$LOG_PREFIX Данные уже загружены, пропускаем loadData()")
             return
@@ -58,36 +56,32 @@ class HomeViewModel(
             _uiState.update { it.copy(isLoading = true, errorMessage = null) }
 
             try {
-                // Запускаем запрос категорий и товаров параллельно
                 val categoriesDeferred = async { repository.getCategories() }
                 val bestSellersDeferred = async { repository.getBestSellers() }
 
-                val (categoriesResult, bestSellersResult) = awaitAll(
-                    categoriesDeferred,
-                    bestSellersDeferred
-                )
+                val categoriesResult: Result<List<Category>>
+                val bestSellersResult: Result<List<Product>>
+
+                val results = awaitAll(categoriesDeferred, bestSellersDeferred)
+                categoriesResult = results[0] as Result<List<Category>>
+                bestSellersResult = results[1] as Result<List<Product>>
 
                 // 1. Категории
-                if (categoriesResult is Result<*>) {
-                    val categoriesRes = categoriesResult as Result<List<Category>>
-                    if (categoriesRes.isSuccess) {
-                        val categories = categoriesRes.getOrDefault(emptyList())
-                        val allCategory = Category(id = "all", name = "Все", isSelected = false)
-                        val updatedCategories = listOf(allCategory) + categories
+                if (categoriesResult.isSuccess) {
+                    val categories = categoriesResult.getOrDefault(emptyList())
+                    val allCategory = Category(id = "all", name = "Все", isSelected = false)
+                    val updatedCategories = listOf(allCategory) + categories
 
-                        _uiState.update { state ->
-                            state.copy(categories = updatedCategories)
-                        }
+                    _uiState.update { state ->
+                        state.copy(categories = updatedCategories)
                     }
                 }
 
                 // 2. Бестселлеры
-                var bestSellers: List<Product> = emptyList()
-                if (bestSellersResult is Result<*>) {
-                    val bestRes = bestSellersResult as Result<List<Product>>
-                    if (bestRes.isSuccess) {
-                        bestSellers = bestRes.getOrDefault(emptyList())
-                    }
+                var bestSellers = if (bestSellersResult.isSuccess) {
+                    bestSellersResult.getOrDefault(emptyList())
+                } else {
+                    emptyList()
                 }
 
                 // 3. Подставляем избранное
