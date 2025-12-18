@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.shoeshop.data.SessionManager
 import com.example.shoeshop.data.model.Product
 import com.example.shoeshop.data.model.Category
 import com.example.shoeshop.ui.components.ProductCard

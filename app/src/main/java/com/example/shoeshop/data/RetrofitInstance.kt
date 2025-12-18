@@ -4,6 +4,7 @@ import com.example.myfirstproject.data.service.UserManagementService
 import com.example.shoeshop.data.service.CategoriesService
 import com.example.shoeshop.data.service.FavouriteService
 import com.example.shoeshop.data.service.ProductsService
+import com.example.shoeshop.data.service.ProfileService
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import retrofit2.Retrofit
@@ -35,23 +36,29 @@ object RetrofitInstance {
         }
         .addInterceptor { chain ->
             val original = chain.request()
-
-            // Добавляем обязательные заголовки для Supabase REST API
-            val requestBuilder = original.newBuilder()
-                .header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8")
-                .header("Authorization", "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8")
-                .header("Content-Type", "application/json")
-                .method(original.method, original.body)
-
-            // Для авторизации могут быть другие заголовки
             val url = original.url.toString()
+
+            val builder = original.newBuilder()
+                .header(
+                    "apikey",
+                    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8"
+                )
+                .header("Content-Type", "application/json")
+
             if (url.contains("/auth/")) {
-                // Для auth endpoints используем только apikey
-                requestBuilder.removeHeader("Authorization")
-                requestBuilder.header("apikey", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8")
+                // Для auth-эндпоинтов НЕ подставляем свой Authorization
+                // и НЕ удаляем его, если он уже есть
+                // просто оставляем apikey
+                // ничего больше не делаем
+            } else {
+                // Для rest/v1/* используем service key как Authorization
+                builder.header(
+                    "Authorization",
+                    "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8"
+                )
             }
 
-            val request = requestBuilder.build()
+            val request = builder.method(original.method, original.body).build()
             chain.proceed(request)
         }
         .connectTimeout(30, TimeUnit.SECONDS)
@@ -78,5 +85,8 @@ object RetrofitInstance {
     val productsService = retrofitRest.create(ProductsService::class.java)
     val categoriesService = retrofitRest.create(CategoriesService::class.java)
     val favouriteService: FavouriteService = retrofitRest.create(FavouriteService::class.java)
+    val profileService: ProfileService = retrofitRest.create(ProfileService::class.java)
+
+
 
 }

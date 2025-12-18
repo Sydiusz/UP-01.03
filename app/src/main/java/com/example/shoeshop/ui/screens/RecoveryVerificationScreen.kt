@@ -31,13 +31,14 @@ import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.EmailVerificationViewModel
 import com.example.shoeshop.ui.viewmodel.VerificationState
 import com.example.shoeshop.ui.viewmodel.OtpType
+import com.example.shoeshop.util.getUserEmail
 import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalComposeUiApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun RecoveryVerificationScreen(
     onSignInClick: () -> Unit,
-    onResetPasswordClick: (resetToken: String) -> Unit, // Изменено: теперь передаем reset token
+    onResetPasswordClick: (accessToken: String) -> Unit,
     viewModel: EmailVerificationViewModel = viewModel()
 ) {
     var otpCode by remember { mutableStateOf("") }
@@ -48,7 +49,6 @@ fun RecoveryVerificationScreen(
     val keyboardController = LocalSoftwareKeyboardController.current
     val scope = rememberCoroutineScope()
 
-    // Для управления фокусом на каждом OTP поле
     val focusRequester1 = remember { FocusRequester() }
     val focusRequester2 = remember { FocusRequester() }
     val focusRequester3 = remember { FocusRequester() }
@@ -63,55 +63,51 @@ fun RecoveryVerificationScreen(
 
     LaunchedEffect(Unit) {
         userEmail = getUserEmail(context)
-        // Запрашиваем фокус на первом поле при запуске
         focusRequester1.requestFocus()
     }
 
-    // Автоматическая проверка при вводе 6 цифр
+    // Авто‑проверка при вводе 6 цифр
     LaunchedEffect(otpCode) {
         if (otpCode.length == 6) {
-            // Скрываем клавиатуру
             keyboardController?.hide()
             focusManager.clearFocus()
 
-            // Проверяем Recovery OTP
             if (userEmail.isNotEmpty()) {
-                viewModel.verifyRecoveryOtp(userEmail, otpCode) // Используем recovery метод
+                viewModel.verifyRecoveryOtp(userEmail, otpCode)
             } else {
                 showToast(context, "Email не найден. Пожалуйста, введите email снова")
             }
         }
     }
 
-    // Обработка состояний проверки
+    // Обработка состояний
     LaunchedEffect(verificationState) {
         when (verificationState) {
             is VerificationState.Success -> {
-                when ((verificationState as VerificationState.Success).type) {
+                val success = verificationState as VerificationState.Success
+                when (success.type) {
                     OtpType.RECOVERY -> {
-                        // Получаем reset token и переходим на экран сброса пароля
-                        val resetToken = viewModel.getResetToken()
-                        if (!resetToken.isNullOrEmpty()) {
-                            onResetPasswordClick(resetToken)
+                        val token = success.data?.access_token
+                        android.util.Log.d("OTP", "access_token from verifyOtp: ${token?.take(30)}")
+
+                        if (!token.isNullOrEmpty()) {
+                            onResetPasswordClick(token)
                         } else {
-                            showToast(context, "Ошибка: токен сброса не получен")
+                            showToast(context, "Access token not received")
                         }
                         viewModel.resetState()
                     }
                     OtpType.EMAIL -> {
-                        // Не должно происходить в этом экране
                         showToast(context, "Неправильный тип OTP")
+                        viewModel.resetState()
                     }
                 }
             }
             is VerificationState.Error -> {
                 val errorMessage = (verificationState as VerificationState.Error).message
                 showToast(context, errorMessage)
-                // Очищаем OTP при ошибке
                 otpCode = ""
-                scope.launch {
-                    focusRequester1.requestFocus()
-                }
+                scope.launch { focusRequester1.requestFocus() }
                 viewModel.resetState()
             }
             else -> {}
@@ -125,17 +121,22 @@ fun RecoveryVerificationScreen(
             .verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // Заголовок
         Text(
-            text = stringResource(id = R.string.otp_verification), // Добавьте этот string resource
+            text = stringResource(id = R.string.otp_verification),
             style = AppTypography.headingRegular32,
             color = MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.padding(bottom = 8.dp)
         )
 
-        // Информационное сообщение
         Text(
-            text = stringResource(id = R.string.check_email_for_code), // Добавьте этот string resource
+            text = "Email: $userEmail",
+            style = AppTypography.bodyRegular14,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+
+        Text(
+            text = stringResource(id = R.string.check_email_for_code),
             style = AppTypography.subtitleRegular16.copy(color = MaterialTheme.colorScheme.outline),
             textAlign = TextAlign.Center,
             modifier = Modifier
@@ -143,7 +144,6 @@ fun RecoveryVerificationScreen(
                 .padding(bottom = 8.dp)
         )
 
-        // Отображение email
         if (userEmail.isNotEmpty()) {
             Text(
                 text = "Код отправлен на: $userEmail",
@@ -155,7 +155,6 @@ fun RecoveryVerificationScreen(
             )
         }
 
-        // Контейнер для OTP полей
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -184,7 +183,6 @@ fun RecoveryVerificationScreen(
             }
         }
 
-        // Статус загрузки
         if (verificationState is VerificationState.Loading) {
             CircularProgressIndicator(
                 modifier = Modifier.size(24.dp),
@@ -195,6 +193,8 @@ fun RecoveryVerificationScreen(
         Spacer(modifier = Modifier.height(40.dp))
     }
 }
+
+
 
 @OptIn(ExperimentalComposeUiApi::class)
 @Composable
@@ -316,18 +316,4 @@ private fun showToast(context: android.content.Context, message: String) {
         message,
         android.widget.Toast.LENGTH_LONG
     ).show()
-}
-
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun RecoveryVerificationScreenPreview() {
-    MaterialTheme {
-        RecoveryVerificationScreen(
-            onSignInClick = {},
-            onResetPasswordClick = { resetToken ->
-                // Preview навигация
-            }
-        )
-    }
 }

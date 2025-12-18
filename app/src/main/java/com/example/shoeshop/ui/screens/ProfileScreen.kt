@@ -16,22 +16,58 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.R
 import com.example.shoeshop.ui.components.DisableButton
+import com.example.shoeshop.ui.viewmodel.ProfileViewModel
+import com.example.shoeshop.data.SessionManager
 
 @Composable
-fun ProfileScreen() {
-    var isEditing by remember { mutableStateOf(false) }
-    var name by remember { mutableStateOf("Еmmanuel") }
-    var lastName by remember { mutableStateOf("Oyiboke") }
-    var address by remember { mutableStateOf("Nigeria") }
-    var phone by remember { mutableStateOf("") }
+fun ProfileScreen(
+    viewModel: ProfileViewModel = viewModel()
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    // Проверка, изменились ли данные
-    val hasChanges by remember(name, lastName, address, phone) {
+    LaunchedEffect(Unit) {
+        viewModel.loadProfile()
+    }
+
+    var isEditing by remember { mutableStateOf(false) }
+
+    val currentProfile = uiState.profile
+
+    var name by remember(currentProfile?.firstname) {
+        mutableStateOf(currentProfile?.firstname ?: "")
+    }
+    var lastName by remember(currentProfile?.lastname) {
+        mutableStateOf(currentProfile?.lastname ?: "")
+    }
+    var address by remember(currentProfile?.address) {
+        mutableStateOf(currentProfile?.address ?: "")
+    }
+    var phone by remember(currentProfile?.phone) {
+        mutableStateOf(currentProfile?.phone ?: "")
+    }
+
+    val original = currentProfile
+    val hasChanges by remember(name, lastName, address, phone, original) {
         derivedStateOf {
-            name != "Еmmanuel" || lastName != "Oyiboke" || address != "Nigeria" || phone != ""
+            if (original == null) {
+                // Первый раз создаём профиль: включаем кнопку,
+                // когда пользователь что‑то ввёл
+                name.isNotBlank() ||
+                        lastName.isNotBlank() ||
+                        address.isNotBlank() ||
+                        phone.isNotBlank()
+            } else {
+                // Профиль уже есть: сравниваем с тем, что пришло с сервера
+                name != (original.firstname ?: "") ||
+                        lastName != (original.lastname ?: "") ||
+                        address != (original.address ?: "") ||
+                        phone != (original.phone ?: "")
+            }
         }
     }
 
@@ -39,130 +75,125 @@ fun ProfileScreen() {
         modifier = Modifier.fillMaxSize(),
         color = Color.White
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp)
-        ) {
-            // Верхняя часть с заголовком и кнопкой редактирования
-            Row(
+        if (uiState.isLoading && currentProfile == null) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator()
+            }
+        } else {
+            Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 8.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .fillMaxSize()
+                    .padding(16.dp)
             ) {
-                // Пустое место для балансировки
-                Spacer(modifier = Modifier.size(40.dp))
-                // Заголовок по центру
-                Text(
-                    text = stringResource(id = R.string.profile),
-                    style = AppTypography.headingSemiBold16,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
-                )
-                // Кнопка редактирования/отмены
-                IconButton(
-                    onClick = {
-                        if (isEditing) {
-                            // Отмена редактирования - возвращаем оригинальные значения
-                            name = "Еmmanuel"
-                            lastName = "Oyiboke"
-                            address = "Nigeria"
-                            phone = ""
-                        }
-                        isEditing = !isEditing
-                    },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        painter = painterResource(id =
-                            if (isEditing) R.drawable.edit else R.drawable.edit
-                        ),
-                        contentDescription = if (isEditing) "Отмена" else "Редактировать",
-                        tint = Color.Gray
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(24.dp))
-
-            // Аватар по центру
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(100.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFE0E0E0))
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Имя пользователя
-                Text(
-                    text = "Еmmanuel Oyiboke",
-                    style = AppTypography.bodyRegular20
-                )
-            }
-
-            // Поля профиля
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                if (isEditing) {
-                    EditableField(
-                        label = stringResource(id = R.string.your_name),
-                        value = name,
-                        onValueChange = { name = it }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    EditableField(
-                        label = stringResource(id = R.string.last_name),
-                        value = lastName,
-                        onValueChange = { lastName = it }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    EditableField(
-                        label = stringResource(id = R.string.address),
-                        value = address,
-                        onValueChange = { address = it }
-                    )
-                    Spacer(modifier = Modifier.height(16.dp))
-                    EditableField(
-                        label = stringResource(id = R.string.phone_number),
-                        value = phone,
-                        onValueChange = { phone = it }
-                    )
-                } else {
-                    InputField(label = stringResource(id = R.string.your_name), value = name)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    InputField(label = stringResource(id = R.string.last_name), value = lastName)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    InputField(label = stringResource(id = R.string.address), value = address)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    InputField(label = stringResource(id = R.string.phone_number), value = phone)
-                }
-            }
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Кнопка сохранения (только в режиме редактирования)
-            if (isEditing) {
-                DisableButton(
-                    text = "Сохранить",
-                    onClick = {
-                        // Здесь логика сохранения данных
-                        // Например, вызов ViewModel для сохранения
-                        isEditing = false
-                    },
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(56.dp),
-                    enabled = hasChanges // Кнопка активна только если есть изменения
-                )
+                        .padding(vertical = 8.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Spacer(modifier = Modifier.size(40.dp))
+                    Text(
+                        text = stringResource(id = R.string.profile),
+                        style = AppTypography.headingSemiBold16,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.weight(1f)
+                    )
+                    IconButton(
+                        onClick = {
+                            if (isEditing && original != null) {
+                                name = original.firstname ?: ""
+                                lastName = original.lastname ?: ""
+                                address = original.address ?: ""
+                                phone = original.phone ?: ""
+                            }
+                            isEditing = !isEditing
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(id = R.drawable.edit),
+                            contentDescription = if (isEditing) stringResource(R.string.cancel) else "Изменить",
+                            tint = Color.Gray
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(100.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE0E0E0))
+                    )
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = listOf(name, lastName).filter { it.isNotBlank() }.joinToString(" "),
+                        style = AppTypography.bodyRegular20
+                    )
+                }
+
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    if (isEditing) {
+                        EditableField(
+                            label = stringResource(id = R.string.your_name),
+                            value = name,
+                            onValueChange = { name = it }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        EditableField(
+                            label = stringResource(id = R.string.last_name),
+                            value = lastName,
+                            onValueChange = { lastName = it }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        EditableField(
+                            label = stringResource(id = R.string.address),
+                            value = address,
+                            onValueChange = { address = it }
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        EditableField(
+                            label = stringResource(id = R.string.phone_number),
+                            value = phone,
+                            onValueChange = { phone = it }
+                        )
+                    } else {
+                        InputField(stringResource(id = R.string.your_name), name)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        InputField(stringResource(id = R.string.last_name), lastName)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        InputField(stringResource(id = R.string.address), address)
+                        Spacer(modifier = Modifier.height(16.dp))
+                        InputField(stringResource(id = R.string.phone_number), phone)
+                    }
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                if (isEditing) {
+                    DisableButton(
+                        text = stringResource(id = R.string.save_now),
+                        onClick = {
+                            viewModel.saveProfile(
+                                firstname = name,
+                                lastname = lastName,
+                                address = address,
+                                phone = phone
+                            )
+                            isEditing = false
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp),
+                        enabled = hasChanges
+                    )
+                }
             }
         }
     }
@@ -200,7 +231,7 @@ private fun InputField(
                 contentAlignment = Alignment.CenterStart
             ) {
                 Text(
-                    text = if (value.isNotEmpty()) value else "Не указано",
+                    text = if (value.isNotEmpty()) value else stringResource(R.string.not_specified),
                     style = AppTypography.bodyRegular16.copy(
                         color = if (value.isNotEmpty()) Color.Black else Color.Gray
                     )
@@ -243,7 +274,7 @@ private fun EditableField(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
+@Preview(showBackground = true)
 @Composable
 fun ProfileScreenPreview() {
     ProfileScreen()
