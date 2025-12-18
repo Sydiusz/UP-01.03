@@ -36,13 +36,9 @@ import com.example.shoeshop.ui.viewmodel.SignInViewModel
 
 @Composable
 fun CreateNewPasswordScreen(
-    modifier: Modifier = Modifier,
-    userToken: String? = null, // Добавьте параметр для токена
-    onPasswordChanged: () -> Unit = {},
-    onForgotPasswordClick: () -> Unit = {},
-    onSignInClick: () -> Unit = {},
-    onSignUpClick: () -> Unit = {},
-    viewModel: SignInViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
+    userToken: String?,
+    onPasswordChanged: () -> Unit,
+    viewModel: SignInViewModel = viewModel()   // ← вместо NewPasswordViewModel
 ) {
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
@@ -294,10 +290,3 @@ fun CreateNewPasswordScreen(
     }
 }
 
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun CreateNewPasswordScreenPreview() {
-    ShoeShopTheme {
-        CreateNewPasswordScreen()
-    }
-}

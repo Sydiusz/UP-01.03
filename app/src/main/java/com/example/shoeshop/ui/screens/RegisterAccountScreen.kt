@@ -40,7 +40,7 @@ fun RegisterAccountScreen(
     modifier: Modifier = Modifier,
     onBackClick: () -> Unit = {},
     onSignInClick: () -> Unit,
-    onSignUpClick: () -> Unit,
+    onSignUpClick: (String) -> Unit,   // ← сюда прилетит email
     viewModel: SignUpViewModel = androidx.lifecycle.viewmodel.compose.viewModel()
 ) {
     var name by remember { mutableStateOf("") }
@@ -65,9 +65,10 @@ fun RegisterAccountScreen(
     LaunchedEffect(signUpState) {
         when (signUpState) {
             is SignUpState.Success -> {
-                // Сохраняем данные при успешной регистрации
+                // Можно оставить сохранение в префы, если нужно ещё где-то
                 saveUserDataToPreferences(sharedPreferences, name, email)
-                onSignUpClick()
+
+                onSignUpClick(email)   // ← передаём email дальше
                 viewModel.resetState()
             }
             is SignUpState.Error -> {

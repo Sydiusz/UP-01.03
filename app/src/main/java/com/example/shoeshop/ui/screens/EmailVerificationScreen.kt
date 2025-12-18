@@ -36,24 +36,22 @@ import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.EmailVerificationViewModel
 import com.example.shoeshop.ui.viewmodel.VerificationState
 import com.example.shoeshop.ui.viewmodel.OtpType
+import com.example.shoeshop.util.getUserEmail
 import kotlinx.coroutines.delay
 
 @Composable
 fun EmailVerificationScreen(
+    email: String,
     onSignInClick: () -> Unit,
     onVerificationSuccess: () -> Unit,
     viewModel: EmailVerificationViewModel = viewModel()
 ) {
     var otpCode by remember { mutableStateOf("") }
-    var userEmail by remember { mutableStateOf("") }
+    var userEmail by remember { mutableStateOf(email) }   // ← сразу кладём аргумент
     var resendEnabled by remember { mutableStateOf(true) }
     var countdown by remember { mutableStateOf(0) }
     val context = LocalContext.current
     val verificationState by viewModel.verificationState.collectAsStateWithLifecycle()
-
-    LaunchedEffect(Unit) {
-        userEmail = getUserEmail(context)
-    }
 
     // Таймер для повторной отправки
     LaunchedEffect(countdown) {
@@ -273,9 +271,4 @@ fun EmailVerificationScreen(
             }
         }
     }
-}
-
-fun getUserEmail(context: Context): String {
-    val sharedPreferences = context.getSharedPreferences("shoe_shop_prefs", Context.MODE_PRIVATE)
-    return sharedPreferences.getString("user_email", "") ?: ""
 }

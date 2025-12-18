@@ -82,5 +82,10 @@
     <string name="email_not_found">Email not found. Please sign up again.</string>
     <string name="please_enter_6_digit_otp">Please enter 6-digit OTP code</string>
     <string name="already_verified">Already verified? </string>
+    <string name="hide">Hide</string>
+    <string name="not_specified">Not specified</string>
+    <string name="change_profile_photo">Change your profile photo</string>
+    <string name="profile_photo">Profile Photo</string>
+    <string name="edit">Edit</string>
 
 </resources>

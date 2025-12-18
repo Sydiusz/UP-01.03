@@ -11,27 +11,18 @@ import kotlinx.coroutines.launch
 import java.net.ConnectException
 import java.net.SocketTimeoutException
 import com.example.shoeshop.data.RetrofitInstance
+import com.example.shoeshop.data.SessionManager
 
 class EmailVerificationViewModel : ViewModel() {
 
-    // Общее состояние для обоих типов
-    private val _verificationState = MutableStateFlow<VerificationState>(VerificationState.Idle)
+    private val _verificationState =
+        MutableStateFlow<VerificationState>(VerificationState.Idle)
     val verificationState: StateFlow<VerificationState> = _verificationState
 
-    // Отдельное состояние для recovery (если нужны разные данные)
-    private val _recoveryState = MutableStateFlow<RecoveryState?>(null)
-    val recoveryState: StateFlow<RecoveryState?> = _recoveryState
-
-    /**
-     * Верификация OTP для подтверждения email
-     */
     fun verifyEmailOtp(email: String, otpCode: String) {
         verifyOtpInternal(email, otpCode, OtpType.EMAIL)
     }
 
-    /**
-     * Верификация OTP для восстановления пароля
-     */
     fun verifyRecoveryOtp(email: String, otpCode: String) {
         verifyOtpInternal(email, otpCode, OtpType.RECOVERY)
     }
@@ -41,84 +32,53 @@ class EmailVerificationViewModel : ViewModel() {
             try {
                 _verificationState.value = VerificationState.Loading
 
-                when (otpType) {
-                    OtpType.EMAIL -> {
-                        val response = RetrofitInstance.userManagementService.verifyOtp(
-                            VerifyOtpRequest(
-                                email = email,
-                                token = otpCode,
-                                type = "email"
-                            )
+                val response = RetrofitInstance.userManagementService.verifyOtp(
+                    VerifyOtpRequest(
+                        email = email,
+                        token = otpCode,
+                        type = "email"   // или как у тебя
+                    )
+                )
+
+                if (response.isSuccessful) {
+                    response.body()?.let { body ->
+                        Log.d("OTP", "verifyRecoveryOtp success, email=$email")
+                        Log.d("OTP", "verifyRecoveryOtp access_token=${body.access_token.take(40)}...")
+                        Log.d("OTP", "verifyRecoveryOtp userId=${body.user.id}, userEmail=${body.user.email}")
+
+                        _verificationState.value = VerificationState.Success(
+                            type = otpType,
+                            data = body
                         )
-
-                        if (response.isSuccessful) {
-                            response.body()?.let { verifyResponse ->
-                                Log.v("verifyEmailOtp", "Email verified successfully for: ${verifyResponse.user.email}")
-                                _verificationState.value = VerificationState.Success(
-                                    type = OtpType.EMAIL,
-                                    data = verifyResponse
-                                )
-                            } ?: run {
-                                _verificationState.value = VerificationState.Error(
-                                    "Empty response"
-                                )
-                            }
-                        } else {
-                            val errorMessage = parseVerificationError(response.code(), response.message(), otpType)
-                            _verificationState.value = VerificationState.Error(errorMessage)
-                            Log.e("verifyEmailOtp", "Error code: ${response.code()}, message: ${response.message()}")
-                        }
+                    } ?: run {
+                        Log.e("OTP", "verifyRecoveryOtp empty body")
+                        _verificationState.value = VerificationState.Error("Empty response")
                     }
-
-                    OtpType.RECOVERY -> {
-                        val response = RetrofitInstance.userManagementService.verifyRecoveryOtp(
-                            VerifyOtpRequest(
-                                email = email,
-                                token = otpCode,
-                                type = "recovery"
-                            )
-                        )
-
-                        if (response.isSuccessful) {
-                            response.body()?.let { recoveryResponse ->
-                                Log.v("verifyRecoveryOtp", "Recovery OTP verified successfully")
-
-                                // Устанавливаем общее состояние успеха
-                                _verificationState.value = VerificationState.Success(
-                                    type = OtpType.RECOVERY,
-                                    data = recoveryResponse
-                                )
-
-                                // Дополнительно сохраняем recovery-specific данные
-                                _recoveryState.value = RecoveryState(
-                                    resetToken = recoveryResponse.reset_token,
-                                    email = email
-                                )
-                            } ?: run {
-                                _verificationState.value = VerificationState.Error(
-                                    "Empty recovery response"
-                                )
-                            }
-                        } else {
-                            val errorMessage = parseVerificationError(response.code(), response.message(), otpType)
-                            _verificationState.value = VerificationState.Error(errorMessage)
-                            Log.e("verifyRecoveryOtp", "Error code: ${response.code()}, message: ${response.message()}")
-                        }
-                    }
+                } else {
+                    Log.e(
+                        "OTP",
+                        "verifyRecoveryOtp error code=${response.code()} msg=${response.message()} body=${response.errorBody()?.string()}"
+                    )
+                    val errorMessage = parseVerificationError(response.code(), response.message(), otpType)
+                    _verificationState.value = VerificationState.Error(errorMessage)
                 }
             } catch (e: Exception) {
+                Log.e("OTP", "verifyRecoveryOtp exception=${e.message}", e)
                 val errorMessage = when (e) {
                     is ConnectException -> "No internet connection"
                     is SocketTimeoutException -> "Connection timeout"
                     else -> "Verification failed: ${e.message}"
                 }
                 _verificationState.value = VerificationState.Error(errorMessage)
-                Log.e("EmailVerificationViewModel", "Exception: ${e.message}", e)
             }
         }
     }
 
-    private fun parseVerificationError(code: Int, message: String, otpType: OtpType): String {
+    private fun parseVerificationError(
+        code: Int,
+        message: String,
+        otpType: OtpType
+    ): String {
         return when (code) {
             400 -> when (otpType) {
                 OtpType.EMAIL -> "Invalid OTP code"
@@ -139,33 +99,14 @@ class EmailVerificationViewModel : ViewModel() {
 
     fun resetState() {
         _verificationState.value = VerificationState.Idle
-        _recoveryState.value = null
-    }
-
-    fun getResetToken(): String? {
-        return _recoveryState.value?.resetToken
     }
 }
 
-// Типы OTP
-enum class OtpType {
-    EMAIL, // Подтверждение email
-    RECOVERY // Восстановление пароля
-}
+enum class OtpType { EMAIL, RECOVERY }
 
-// Общее состояние верификации
 sealed class VerificationState {
     object Idle : VerificationState()
     object Loading : VerificationState()
-    data class Success(
-        val type: OtpType,
-        val data: Any? = null
-    ) : VerificationState()
+    data class Success(val type: OtpType, val data: VerifyOtpResponse? = null) : VerificationState()
     data class Error(val message: String) : VerificationState()
 }
-
-// Специфичное состояние для recovery
-data class RecoveryState(
-    val resetToken: String?,
-    val email: String
-)

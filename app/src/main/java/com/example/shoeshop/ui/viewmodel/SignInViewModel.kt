@@ -4,10 +4,12 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.myfirstproject.data.model.SignInRequest
+import com.example.myfirstproject.data.service.UserManagementService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import com.example.shoeshop.data.RetrofitInstance
+import com.example.shoeshop.data.SessionManager
 import com.example.shoeshop.data.model.ChangePasswordRequest
 import kotlinx.coroutines.flow.asStateFlow
 
@@ -25,10 +27,13 @@ class SignInViewModel : ViewModel() {
 
                 if (response.isSuccessful) {
                     response.body()?.let { signInResponse ->
-                        // Сохраняем токен
+                        // Сохраняем токены
                         saveAuthToken(signInResponse.access_token)
                         saveRefreshToken(signInResponse.refresh_token)
                         saveUserData(signInResponse.user)
+
+                        // ВАЖНО: сохранить access_token в SessionManager
+                        SessionManager.accessToken = signInResponse.access_token
 
                         Log.v("signIn", "User authenticated: ${signInResponse.user.email}")
                         _signInState.value = SignInState.Success
@@ -62,19 +67,40 @@ class SignInViewModel : ViewModel() {
         viewModelScope.launch {
             _changePasswordState.value = ChangePasswordState.Loading
             try {
+                // Логи того, что уходит
+                Log.d("ChangePassword", "access_token (user token)=${token.take(40)}...")
+                Log.d(
+                    "ChangePassword",
+                    "Authorization header=Bearer ${token.take(40)}..."
+                )
+                Log.d(
+                    "ChangePassword",
+                    "Supabase apikey=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8" // если хранишь ключ в RetrofitInstance
+                )
+
                 val response = RetrofitInstance.userManagementService.changePassword(
                     token = "Bearer $token",
                     changePasswordRequest = ChangePasswordRequest(password = newPassword)
                 )
 
+                Log.d(
+                    "ChangePassword",
+                    "response code=${response.code()} msg=${response.message()}"
+                )
+
                 if (response.isSuccessful && response.body() != null) {
                     _changePasswordState.value = ChangePasswordState.Success
                 } else {
-                    val errorMessage = response.errorBody()?.string() ?: "Unknown error"
-                    _changePasswordState.value = ChangePasswordState.Error("Failed to change password: $errorMessage")
+                    val errorBody = response.errorBody()?.string()
+                    Log.e("ChangePassword", "errorBody=$errorBody")
+                    val errorMessage = errorBody ?: "Unknown error"
+                    _changePasswordState.value =
+                        ChangePasswordState.Error("Failed to change password: $errorMessage")
                 }
             } catch (e: Exception) {
-                _changePasswordState.value = ChangePasswordState.Error("Network error: ${e.message}")
+                Log.e("ChangePassword", "exception=${e.message}", e)
+                _changePasswordState.value =
+                    ChangePasswordState.Error("Network error: ${e.message}")
             }
         }
     }
@@ -104,8 +130,8 @@ class SignInViewModel : ViewModel() {
     }
 
     private fun saveUserData(user: com.example.myfirstproject.data.model.User) {
-        // TODO: Сохранить данные пользователя
-        Log.d("Auth", "User data saved: ${user.email}")
+        SessionManager.userId = user.id
+        Log.d("Auth", "User data saved: email=${user.email}, id=${user.id}")
     }
 
     fun resetState() {

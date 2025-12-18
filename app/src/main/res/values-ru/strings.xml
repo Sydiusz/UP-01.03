@@ -71,7 +71,6 @@
     <string name="map">карта</string>
     <string name="loyalty_card">карта лояльности</string>
     <string name="create">Создать пользователя</string>
-    <string name="cancel">Отмена</string>
     <string name="verify">Подтвердить Email</string>
     <string name="verify_your_email">Подтвердите вашу электронную почту</string>
     <string name="sent_verification_code">Мы отправили 6-значный код подтверждения на:</string>
@@ -83,4 +82,10 @@
     <string name="email_not_found">Email не найден. Пожалуйста, зарегистрируйтесь снова.</string>
     <string name="please_enter_6_digit_otp">Пожалуйста, введите 6-значный OTP код</string>
     <string name="already_verified">Уже подтвердили? </string>
+    <string name="hide">Скрыть</string>
+    <string name="not_specified">Not specified</string>
+    <string name="change_profile_photo">Изменить фото профиля</string>
+    <string name="profile_photo">Фото профиля</string>
+    <string name="edit">Редактировать</string>
+    <string name="cancel">Отмена</string>
 </resources>
