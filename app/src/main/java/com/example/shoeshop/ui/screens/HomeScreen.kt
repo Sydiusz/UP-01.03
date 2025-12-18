@@ -38,6 +38,7 @@ import com.example.shoeshop.ui.viewmodel.HomeViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    homeViewModel: HomeViewModel,
     onProductClick: (Product) -> Unit,
     onCartClick: () -> Unit,
     onSearchClick: () -> Unit,
@@ -46,11 +47,10 @@ fun HomeScreen(
 ) {
     var selected by remember { mutableIntStateOf(0) }
 
-    // Home VM
-    val viewModel: HomeViewModel = viewModel()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    // ОСТАВИТЬ и заменить на:
+    val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val favoritesViewModel: FavoritesViewModel = viewModel()
-    val favoritesUiState by favoritesViewModel.uiState.collectAsStateWithLifecycle()
 
     Scaffold(
         bottomBar = {
@@ -161,12 +161,12 @@ fun HomeScreen(
         // Ошибка Home
         uiState.errorMessage?.let { errorMessage ->
             AlertDialog(
-                onDismissRequest = { viewModel.clearError() },
+                onDismissRequest = { homeViewModel.clearError() },
                 title = { Text("Ошибка загрузки") },
                 text = { Text(errorMessage) },
                 confirmButton = {
                     TextButton(
-                        onClick = { viewModel.clearError() }
+                        onClick = { homeViewModel.clearError() }
                     ) {
                         Text("OK")
                     }
@@ -278,7 +278,7 @@ fun HomeScreen(
                                     categories = uiState.categories,
                                     selectedCategory = uiState.selectedCategory,
                                     onCategorySelected = { categoryName ->
-                                        viewModel.selectCategory(categoryName)
+                                        homeViewModel.selectCategory(categoryName)
                                         onCategoryClick(categoryName) // Навигация на экран категории
                                     }
                                 )
@@ -290,7 +290,7 @@ fun HomeScreen(
                                     products = uiState.popularProducts,
                                     onProductClick = onProductClick,
                                     onFavoriteClick = { product ->
-                                        viewModel.toggleFavorite(product)
+                                        homeViewModel.toggleFavorite(product)
                                     }
                                 )
                             }
@@ -305,8 +305,11 @@ fun HomeScreen(
                     1 -> {
                         // Вкладка "Избранное" – используем готовый экран FavoritesScreen
                         FavoritesScreen(
-                            onBackClick = { selected = 0 }, // назад — на главную вкладку
-                            onProductClick = onProductClick
+                            onBackClick = { selected = 0 },
+                            onProductClick = onProductClick,
+                            onToggleFavoriteInHome = { product ->
+                                homeViewModel.toggleFavorite(product)
+                            }
                         )
                     }
 
@@ -503,16 +506,4 @@ private fun PromotionsSection() {
             }
         }
     }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun HomeScreenPreview() {
-    HomeScreen(
-        onProductClick = {},
-        onCartClick = {},
-        onSearchClick = {},
-        onSettingsClick = {},
-        onCategoryClick = {}
-    )
 }

@@ -25,7 +25,8 @@ import com.example.shoeshop.R
 @Composable
 fun FavoritesScreen(
     onBackClick: () -> Unit,
-    onProductClick: (Product) -> Unit
+    onProductClick: (Product) -> Unit,
+    onToggleFavoriteInHome: (Product) -> Unit
 ) {
     val viewModel: FavoritesViewModel = viewModel()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -88,6 +89,7 @@ fun FavoritesScreen(
                                 onProductClick = { onProductClick(product) },
                                 onFavoriteClick = {
                                     viewModel.toggleFavorite(product)
+                                    onToggleFavoriteInHome(product)   // ← добавить эту строку
                                 },
                                 modifier = Modifier.fillMaxWidth()
                             )

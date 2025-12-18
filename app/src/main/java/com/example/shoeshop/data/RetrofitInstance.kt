@@ -23,7 +23,7 @@ object RetrofitInstance {
     // Прокси настройки
     private const val PROXY_HOST = "10.207.106.71" // Замените на IP адрес вашего прокси
     private const val PROXY_PORT = 3128           // Замените на порт вашего прокси
-    private const val USE_PROXY = true           // Включить/выключить использование прокси
+    private const val USE_PROXY = false           // Включить/выключить использование прокси
 
     // Основной клиент для всех запросов
     var client: OkHttpClient = OkHttpClient.Builder()

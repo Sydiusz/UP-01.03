@@ -31,7 +31,8 @@ import com.example.shoeshop.ui.viewmodel.ProductDetailViewModel
 fun ProductDetailScreen(
     productId: String,
     onBackClick: () -> Unit,
-    onAddToCart: (Product) -> Unit
+    onAddToCart: (Product) -> Unit,
+    onToggleFavoriteInHome: (Product) -> Unit
 ) {
     val viewModel: ProductDetailViewModel = viewModel()
 
@@ -119,7 +120,10 @@ fun ProductDetailScreen(
                         product = product!!,
                         onAddToCart = onAddToCart,
                         onToggleFavorite = {
+                            // сначала обновляем деталку
                             viewModel.toggleFavorite(product!!)
+                            // затем уведомляем Home
+                            onToggleFavoriteInHome(product!!)
                         },
                         modifier = Modifier.fillMaxSize()
                     )

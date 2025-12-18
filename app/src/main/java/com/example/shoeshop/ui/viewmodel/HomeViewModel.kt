@@ -127,34 +127,39 @@ class HomeViewModel(
 
     suspend fun loadCategoryProducts(categoryName: String): Result<List<Product>> {
         return try {
-            android.util.Log.d(TAG, "Загрузка товаров категории: '$categoryName'")
-
-            if (categoryName == "Все") {
-                android.util.Log.d(TAG, "Загружаем ВСЕ товары через getAllProducts()")
+            val baseResult = if (categoryName == "Все") {
                 repository.getAllProducts()
             } else {
-                // Берём категории прямо из репозитория, а не из uiState
-                val categoriesResult = repository.getCategories()
-                if (categoriesResult.isSuccess) {
-                    val categories = categoriesResult.getOrDefault(emptyList())
-                    val category = categories.firstOrNull { it.name == categoryName }
+                val category = uiState.value.categories
+                    .firstOrNull { it.name == categoryName && it.id != "all" }
 
-                    android.util.Log.d(TAG, "Найденная категория: $category")
-
-                    if (category != null) {
-                        repository.getProductsByCategory(category.id)
-                    } else {
-                        Result.failure(Exception("Категория не найдена: $categoryName"))
-                    }
+                if (category != null) {
+                    repository.getProductsByCategory(category.id)
                 } else {
-                    Result.failure(Exception("Не удалось загрузить категории"))
+                    return Result.failure(Exception("Категория не найдена: $categoryName"))
                 }
             }
+
+            if (baseResult.isFailure) return baseResult
+
+            var products = baseResult.getOrDefault(emptyList())
+
+            // подставляем избранное так же, как в loadData
+            val userId = SessionManager.userId
+            if (userId != null && products.isNotEmpty()) {
+                val favIdsResult = favouriteRepository.getFavoritesForUser(userId)
+                val favIds = favIdsResult.getOrDefault(emptyList())
+                products = products.map { p ->
+                    p.copy(isFavorite = favIds.contains(p.id))
+                }
+            }
+
+            Result.success(products)
         } catch (e: Exception) {
-            android.util.Log.e(TAG, "Исключение в loadCategoryProducts: ${e.message}", e)
             Result.failure(e)
         }
     }
+
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }

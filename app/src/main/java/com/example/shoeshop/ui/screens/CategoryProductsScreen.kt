@@ -22,13 +22,13 @@ import com.example.shoeshop.ui.viewmodel.HomeViewModel
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CategoryProductsScreen(
+    homeViewModel: HomeViewModel,
     categoryName: String,
     onProductClick: (Product) -> Unit,
     onBackClick: () -> Unit,
     onCategorySelected: (String) -> Unit
 ) {
-    val viewModel: HomeViewModel = viewModel()
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
 
     val categoryProducts = remember(categoryName) {
         mutableStateOf<List<Product>>(emptyList())
@@ -39,11 +39,11 @@ fun CategoryProductsScreen(
     LaunchedEffect(categoryName) {
         // если категорий нет – загружаем
         if (uiState.categories.isEmpty()) {
-            viewModel.loadData()
+            homeViewModel.loadData()
         }
 
         isLoading = true
-        val result = viewModel.loadCategoryProducts(categoryName)
+        val result = homeViewModel.loadCategoryProducts(categoryName)
         if (result.isSuccess) {
             // товары категории; при желании здесь можно проставить isFavorite
             categoryProducts.value = result.getOrDefault(emptyList())
@@ -52,7 +52,7 @@ fun CategoryProductsScreen(
         }
         isLoading = false
 
-        viewModel.selectCategory(categoryName)
+        homeViewModel.selectCategory(categoryName)
     }
 
     Scaffold(
@@ -67,7 +67,7 @@ fun CategoryProductsScreen(
                 navigationIcon = {
                     BackButton(
                         onClick = {
-                            viewModel.resetSelectedCategory()
+                            homeViewModel.resetSelectedCategory()
                             onBackClick()
                         }
                     )
@@ -150,8 +150,12 @@ fun CategoryProductsScreen(
                                     product = product,
                                     onProductClick = { onProductClick(product) },
                                     onFavoriteClick = {
-                                        // используем ту же логику избранного, что на Home
-                                        viewModel.toggleFavorite(product)
+                                        // 1) обновляем Home
+                                        homeViewModel.toggleFavorite(product)
+                                        // 2) локально обновляем список категории
+                                        categoryProducts.value = categoryProducts.value.map {
+                                            if (it.id == product.id) it.copy(isFavorite = !it.isFavorite) else it
+                                        }
                                     },
                                     modifier = Modifier.fillMaxWidth()
                                 )

@@ -3,6 +3,7 @@ package com.example.shoeshop.data.navigation
 import EmailVerificationScreen
 import RecoveryVerificationScreen
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
@@ -60,18 +61,17 @@ fun NavigationApp(navController: NavHostController) {
             )
         }
 
-        composable("home") {
+        // home
+        composable("home") { backStackEntry ->
+            val homeViewModel: HomeViewModel = viewModel(backStackEntry)
             HomeScreen(
+                homeViewModel = homeViewModel,
                 onProductClick = { product ->
                     navController.navigate("product/${product.id}")
                 },
-                onCartClick = {
-                    // navController.navigate("cart")
-                },
-                onSearchClick = {
-                    // navController.navigate("search")
-                },
-                onSettingsClick = { /* TODO */ },
+                onCartClick = { /* ... */ },
+                onSearchClick = { /* ... */ },
+                onSettingsClick = { },
                 onCategoryClick = { categoryName ->
                     navController.navigate("category/$categoryName")
                 }
@@ -83,7 +83,14 @@ fun NavigationApp(navController: NavHostController) {
             arguments = listOf(navArgument("categoryName") { type = NavType.StringType })
         ) { backStackEntry ->
             val categoryName = backStackEntry.arguments?.getString("categoryName") ?: ""
+
+            val homeBackStackEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("home")
+            }
+            val homeViewModel: HomeViewModel = viewModel(homeBackStackEntry)
+
             CategoryProductsScreen(
+                homeViewModel = homeViewModel,
                 categoryName = categoryName,
                 onProductClick = { product ->
                     navController.navigate("product/${product.id}")
@@ -97,18 +104,28 @@ fun NavigationApp(navController: NavHostController) {
             )
         }
 
+        // product
         composable(
             route = "product/{productId}",
             arguments = listOf(navArgument("productId") { type = NavType.StringType })
         ) { backStackEntry ->
             val productId = backStackEntry.arguments?.getString("productId") ?: ""
+
+            val homeBackStackEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("home")
+            }
+            val homeViewModel: HomeViewModel = viewModel(homeBackStackEntry)
+
             ProductDetailScreen(
                 productId = productId,
                 onBackClick = { navController.popBackStack() },
-                onAddToCart = { /* TODO */ }
-                // onToggleFavorite больше не передаём, логика внутри ProductDetailViewModel
+                onAddToCart = { /* TODO */ },
+                onToggleFavoriteInHome = { product ->
+                    homeViewModel.toggleFavorite(product)
+                }
             )
         }
+
 
     }
 }
