@@ -26,7 +26,9 @@ data class Product(
     val originalPrice: String? = null,
     val imageUrl: String? = null,
     val imageResId: Int? = null,
-    val isFavorite: Boolean = false
+    val isFavorite: Boolean = false,
+    val isInCart: Boolean = false
+
 ) {
     fun getFormattedPrice(): String {
         return "₽${String.format("%.2f", price)}"

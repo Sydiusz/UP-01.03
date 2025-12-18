@@ -150,11 +150,15 @@ fun CategoryProductsScreen(
                                     product = product,
                                     onProductClick = { onProductClick(product) },
                                     onFavoriteClick = {
-                                        // 1) обновляем Home
                                         homeViewModel.toggleFavorite(product)
-                                        // 2) локально обновляем список категории
                                         categoryProducts.value = categoryProducts.value.map {
                                             if (it.id == product.id) it.copy(isFavorite = !it.isFavorite) else it
+                                        }
+                                    },
+                                    onAddToCartClick = {
+                                        homeViewModel.toggleCart(product)   // метод во ViewModel, который добавляет/удаляет из корзины
+                                        categoryProducts.value = categoryProducts.value.map {
+                                            if (it.id == product.id) it.copy(isInCart = !it.isInCart) else it
                                         }
                                     },
                                     modifier = Modifier.fillMaxWidth()

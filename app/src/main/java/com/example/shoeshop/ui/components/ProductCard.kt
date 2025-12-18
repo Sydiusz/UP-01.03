@@ -23,13 +23,15 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.shoeshop.data.model.Product
 import com.example.shoeshop.ui.theme.AppTypography
+import com.example.shoeshop.R
 
 @Composable
 fun ProductCard(
     product: Product,
     onProductClick: () -> Unit,
     onFavoriteClick: () -> Unit,
-    modifier: Modifier
+    onAddToCartClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Card(
         modifier = Modifier
@@ -40,7 +42,6 @@ fun ProductCard(
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column {
-            // Изображение продукта
             Box(
                 modifier = modifier
                     .height(120.dp)
@@ -68,7 +69,7 @@ fun ProductCard(
                     }
                 }
 
-                // Кнопка избранного (СЛЕВА)
+                // избранное (слева)
                 IconButton(
                     onClick = onFavoriteClick,
                     modifier = Modifier
@@ -76,18 +77,21 @@ fun ProductCard(
                         .padding(8.dp)
                 ) {
                     Icon(
-                        imageVector = if (product.isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                        imageVector = if (product.isFavorite)
+                            Icons.Default.Favorite
+                        else
+                            Icons.Default.FavoriteBorder,
                         contentDescription = "Избранное",
                         tint = if (product.isFavorite) Color.Red else Color.Black
                     )
                 }
             }
 
-            // Информация о продукте
+            // НИЖНЯЯ ЧАСТЬ: текст + кнопка в правом нижнем углу
             Column(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                modifier = Modifier
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                // BEST SELLER текст над названием
                 if (product.isBestSeller) {
                     Text(
                         text = "BEST SELLER",
@@ -109,17 +113,48 @@ fun ProductCard(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Отображаем цену в формате P{цена}
-                Text(
-                    text = "P${String.format("%.2f", product.price)}",
-                    style = AppTypography.bodyMedium16.copy(
-                        fontWeight = FontWeight.Bold
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // цена слева
+                    Text(
+                        text = "P${String.format("%.2f", product.price)}",
+                        style = AppTypography.bodyMedium16.copy(
+                            fontWeight = FontWeight.Bold
+                        )
                     )
-                )
+
+                            // кнопка справа
+                            IconButton(
+                                onClick = onAddToCartClick,
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .background(
+                                        color = Color(0xFF03A9F4),
+                                        shape = RoundedCornerShape(13.dp)
+                                    )
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        id = if (product.isInCart)
+                                            R.drawable.cart   // иконка корзины
+                                        else
+                                            R.drawable.add    // иконка "+"
+                                    ),
+                                    contentDescription = if (product.isInCart)
+                                        "В корзине"
+                                    else
+                                        "Добавить в корзину",
+                                    tint = Color.White,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                }
             }
         }
     }
-}
-
 
 

@@ -160,7 +160,11 @@ class HomeViewModel(
         }
     }
 
-
+    fun toggleCart(product: Product) {
+        viewModelScope.launch {
+            // здесь твоя логика добавления/удаления из корзины + обновление uiState.products
+        }
+    }
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }
     }

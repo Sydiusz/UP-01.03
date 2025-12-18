@@ -434,6 +434,9 @@ private fun PopularSection(
                         product = product,
                         onProductClick = { onProductClick(product) },
                         onFavoriteClick = { onFavoriteClick(product) },
+                        onAddToCartClick = {
+                                   // реализуешь во HomeViewModel
+                        },
                         modifier = Modifier
                     )
                 }
