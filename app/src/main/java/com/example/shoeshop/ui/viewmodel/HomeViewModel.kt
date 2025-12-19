@@ -196,7 +196,9 @@ class HomeViewModel(
         val userId = SessionManager.userId ?: return
 
         viewModelScope.launch {
-            val currentlyInCart = product.isInCart
+            // берём актуальное значение из состояния
+            val current = _uiState.value.popularProducts.firstOrNull { it.id == product.id }
+            val currentlyInCart = current?.isInCart ?: false
 
             // оптимистично обновляем UI
             _uiState.update { state ->
@@ -214,7 +216,6 @@ class HomeViewModel(
             }
 
             if (result.isFailure) {
-                Log.e(TAG, "$LOG_PREFIX toggleCart error: ${result.exceptionOrNull()?.message}")
                 // откат
                 _uiState.update { state ->
                     state.copy(
@@ -226,6 +227,7 @@ class HomeViewModel(
             }
         }
     }
+
 
     fun clearError() {
         _uiState.update { it.copy(errorMessage = null) }

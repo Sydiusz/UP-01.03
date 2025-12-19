@@ -20,6 +20,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoeshop.R
 import com.example.shoeshop.data.model.OrderItem
+import com.example.shoeshop.ui.components.ProductImage
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.OrderDetailsViewModel
 
@@ -140,13 +141,25 @@ private fun OrderItemCard(item: OrderItem) {
                     .background(Color(0xFFF5F5F5), RoundedCornerShape(16.dp)),
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    painter = painterResource(id = R.drawable.bag_2),
-                    contentDescription = null,
-                    tint = Color.Gray
-                )
+                // если есть id товара — показываем картинку, иначе старую иконку
+                val productId = item.product_id    // или item.productId, как у тебя в модели
+
+                if (productId != null) {
+                    ProductImage(
+                        productId = productId,
+                        modifier = Modifier.fillMaxSize()
+                    )
+                } else {
+                    Icon(
+                        painter = painterResource(id = R.drawable.bag_2),
+                        contentDescription = null,
+                        tint = Color.Gray
+                    )
+                }
             }
+
             Spacer(Modifier.width(12.dp))
+
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = item.title ?: "",
@@ -157,6 +170,7 @@ private fun OrderItemCard(item: OrderItem) {
                     style = AppTypography.bodyMedium16
                 )
             }
+
             Text(
                 text = "${item.count ?: 0} шт",
                 style = AppTypography.bodyRegular12,

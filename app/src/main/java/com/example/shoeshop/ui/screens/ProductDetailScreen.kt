@@ -53,6 +53,7 @@ fun ProductDetailScreen(
 ) {
     val viewModel: ProductDetailViewModel = viewModel()
 
+
     LaunchedEffect(productId) {
         viewModel.loadProduct(productId)
     }
@@ -183,6 +184,12 @@ fun ProductDetailContent(
     modifier: Modifier = Modifier
 ) {
     var isDescriptionExpanded by remember { mutableStateOf(false) }
+    var inCart by remember(product.id) { mutableStateOf(product.isInCart) }
+
+    // если product.isInCart изменился снаружи — обновляем локальное состояние
+    LaunchedEffect(product.isInCart) {
+        inCart = product.isInCart
+    }
 
     val categoryText = product.displayCategory
         ?: product.categoryId
@@ -391,7 +398,8 @@ fun ProductDetailContent(
                 }
 
                 Button(
-                    onClick = { onAddToCart(product) },
+                    onClick = { onAddToCart(product)
+                        inCart = !inCart  },
                     modifier = Modifier
                         .weight(1f)
                         .height(56.dp),
@@ -407,15 +415,20 @@ fun ProductDetailContent(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
-                            painter = painterResource(id = R.drawable.bag_2),
-                            contentDescription = "В корзину",
+                            painter = painterResource(
+                                id = if (inCart) R.drawable.bag_2 else R.drawable.bag_2
+                            ),
+                            contentDescription = null,
                             tint = Color.White,
                             modifier = Modifier
                                 .size(24.dp)
                                 .padding(end = 8.dp)
                         )
                         Text(
-                            text = "Добавить в корзину",
+                            text = if (inCart)
+                                stringResource(R.string.added_to_cart)
+                            else
+                                stringResource(R.string.add_to_cart),
                             style = AppTypography.bodyMedium16
                         )
                     }

@@ -20,7 +20,8 @@ data class OrderListItemUi(
     val price: Double,
     val delivery: Double,
     val createdAt: OffsetDateTime,
-    val timeLabel: String
+    val timeLabel: String,
+    val firstProductId: String?      // 👈 добавили
 )
 
 data class OrdersSection(
@@ -88,7 +89,8 @@ class OrdersViewModel(
                 price = first?.coast ?: 0.0,
                 delivery = (order.delivery_coast ?: 0L).toDouble(),
                 createdAt = created,
-                timeLabel = timeLabel
+                timeLabel = timeLabel,
+                firstProductId = first?.product_id   // 👈 важно: id товара
             )
         }.sortedByDescending { it.createdAt }
 

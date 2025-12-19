@@ -18,7 +18,7 @@
     <string name="sign_up">Зарегистрироваться</string>
     <string name="sign_in"> Войти</string>
     <string name="new_user">Вы впервые?</string>
-    <string name="have_acc">Есть аккаунт? Войти</string>
+    <string name="have_acc">Есть аккаунт?</string>
     <string name="recovery">Воcстановить</string>
     <string name="forgot_password">Забыл пароль</string>
     <string name="enter_email_to_reset">Введите свою учетную запись для сброса</string>
@@ -28,7 +28,7 @@
     <string name="otp_verification">OTP проверка</string>
     <string name="check_email_for_code">Пожалуйста, проверьте свою электронную почту, чтобы увидеть код подтверждения</string>
     <string name="otp_code">OTP Код</string>
-    <string name="set_new_password">задать новый пароль</string>
+    <string name="set_new_password">Задать новый пароль</string>
     <string name="set_password_description">Установите новый пароль для входа в вашу учетную запись</string>
     <string name="confirm_password">подтверждение пароля</string>
     <string name="home">Главная</string>
@@ -46,7 +46,7 @@
     <string name="checkout">Оформить заказ</string>
     <string name="contact_information">Контактная информация</string>
     <string name="address">Адрес</string>
-    <string name="phone_number">телефон</string>
+    <string name="phone_number">Телефон</string>
     <string name="payment_method">Способ оплаты</string>
     <string name="min_ago">мин назад</string>
     <string name="open">Открыть</string>
@@ -62,7 +62,7 @@
     <string name="notifications">Уведомления</string>
     <string name="settings">Настройки</string>
     <string name="sign_out">Выйти</string>
-    <string name="profile">профиль</string>
+    <string name="profile">Профиль</string>
     <string name="change_profile_picture">Изменить фото профиля</string>
     <string name="your_name">Имя</string>
     <string name="last_name">Фамилия</string>

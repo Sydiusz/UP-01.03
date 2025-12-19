@@ -5,7 +5,9 @@ import RecoveryVerificationScreen
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -31,13 +33,29 @@ import com.example.shoeshop.ui.viewmodel.CheckoutViewModel
 import com.example.shoeshop.ui.viewmodel.HomeViewModel
 import com.example.shoeshop.ui.viewmodel.ProfileViewModel
 import com.example.shoeshop.util.getUserEmail
+import com.example.shoeshop.util.isOnboardingCompleted
 import com.example.shoeshop.util.saveUserEmail
+import com.example.shoeshop.util.setOnboardingCompleted
 
 @Composable
 fun NavigationApp(navController: NavHostController) {
+    val context = LocalContext.current
+
+    var startDestination by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        startDestination = if (isOnboardingCompleted(context)) {
+            "sign_up"      // онбординг уже пройден → сразу к регистрации
+        } else {
+            "start_menu"   // показываем онбординг
+        }
+    }
+
+    // ждём, пока определится стартовый экран
+    val start = startDestination ?: return
     NavHost(
         navController = navController,
-        startDestination = "start_menu"
+        startDestination = start
     ) {
         composable("sign_up") {
             RegisterAccountScreen(
@@ -141,8 +159,14 @@ fun NavigationApp(navController: NavHostController) {
 
 
         composable("start_menu") {
+            val context = LocalContext.current
             OnboardScreen(
-                onGetStartedClick = { navController.navigate("sign_up") },
+                onGetStartedClick = {
+                    setOnboardingCompleted(context, true)       // помечаем онбординг как пройденный
+                    navController.navigate("sign_up") {
+                        popUpTo("start_menu") { inclusive = true }   // убираем онбординг из backstack
+                    }
+                }
             )
         }
         composable("forgot_password") { navBackStackEntry ->

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.shoeshop.data.SessionManager
 import com.example.shoeshop.data.model.Product
+import com.example.shoeshop.data.repository.CartRepository
 import com.example.shoeshop.data.repository.FavouriteRepository
 import com.example.shoeshop.data.repository.ProductsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,7 +14,8 @@ import kotlinx.coroutines.launch
 
 class ProductDetailViewModel(
     private val repository: ProductsRepository = ProductsRepository(),
-    private val favouriteRepository: FavouriteRepository = FavouriteRepository()
+    private val favouriteRepository: FavouriteRepository = FavouriteRepository(),
+    private val cartRepository: CartRepository = CartRepository()   // 👈 ДОБАВИЛИ
 ) : ViewModel() {
 
     private val _product = MutableStateFlow<Product?>(null)
@@ -53,12 +55,25 @@ class ProductDetailViewModel(
                         }
                     }
 
-                    // избранное
                     val userId = SessionManager.userId
+
+                    // избранное
                     if (userId != null && loaded != null) {
                         val isFavResult = favouriteRepository.isFavorite(userId, loaded.id)
                         val isFav = isFavResult.getOrDefault(false)
-                        loaded = loaded.copy(isFavorite = isFav)   // ← важно
+                        loaded = loaded.copy(isFavorite = isFav)
+                    }
+
+                    // КОРЗИНА 👇
+                    if (userId != null && loaded != null) {
+                        val cartResult = cartRepository.getCartItemsForCurrentUser()
+                        if (cartResult.isSuccess) {
+                            val cartItems = cartResult.getOrDefault(emptyList())
+                            val productIdsInCart = cartItems.map { it.product_id }.toSet()
+                            loaded = loaded.copy(
+                                isInCart = productIdsInCart.contains(loaded.id)
+                            )
+                        }
                     }
 
                     _product.value = loaded
@@ -84,8 +99,9 @@ class ProductDetailViewModel(
                 var list = allResult.getOrDefault(emptyList())
                     .map { it.copy(displayCategory = base.displayCategory) }
 
-                // Проставляем isFavorite для related‑товаров
                 val userId = SessionManager.userId
+
+                // избранное
                 if (userId != null && list.isNotEmpty()) {
                     val favIdsResult = favouriteRepository.getFavoritesForUser(userId)
                     val favIds = favIdsResult.getOrDefault(emptyList())
@@ -94,14 +110,26 @@ class ProductDetailViewModel(
                     }
                 }
 
+                // КОРЗИНА ДЛЯ related 👇
+                if (userId != null && list.isNotEmpty()) {
+                    val cartResult = cartRepository.getCartItemsForCurrentUser()
+                    if (cartResult.isSuccess) {
+                        val cartItems = cartResult.getOrDefault(emptyList())
+                        val idsInCart = cartItems.map { it.product_id }.toSet()
+                        list = list.map { p ->
+                            p.copy(isInCart = idsInCart.contains(p.id))
+                        }
+                    }
+                }
+
                 _related.value = list
 
-                // индекс текущего товара в списке
                 val idx = list.indexOfFirst { it.id == base.id }
                 _selectedIndex.value = if (idx >= 0) idx else 0
             }
-        } catch (_: Exception) {}
+        } catch (_: Exception) { }
     }
+
 
 
     fun toggleFavorite(product: Product) {

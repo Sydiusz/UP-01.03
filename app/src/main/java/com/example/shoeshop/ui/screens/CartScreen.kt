@@ -31,6 +31,7 @@ import com.example.shoeshop.data.model.Product
 import com.example.shoeshop.ui.theme.AppTypography
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.example.shoeshop.ui.components.ProductImage
 
 data class CartUiItem(
     val id: String,
@@ -286,7 +287,6 @@ private fun CartItemCard(item: CartUiItem) {
             .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // превью товара (пока инициалы)
         Box(
             modifier = Modifier
                 .size(64.dp)
@@ -294,10 +294,9 @@ private fun CartItemCard(item: CartUiItem) {
                 .background(Color(0xFFF5F5F5)),
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                text = item.product.name.take(2).uppercase(),
-                style = AppTypography.bodyMedium16,
-                color = Color.Gray
+            ProductImage(
+                productId = item.product.id,
+                modifier = Modifier.fillMaxSize()
             )
         }
 

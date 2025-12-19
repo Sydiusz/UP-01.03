@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoeshop.R
+import com.example.shoeshop.ui.components.ProductImage
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.OrdersViewModel
 
@@ -113,9 +114,10 @@ fun OrdersScreen(
                                     price = order.price,
                                     delivery = order.delivery,
                                     timeLabel = order.timeLabel,
+                                    productId = order.firstProductId,          // 👈
                                     onRepeat = { onRepeatOrder(order.id) },
                                     onCancel = { onCancelOrder(order.id) },
-                                    onClick = { onOrderClick(order.id) }   // ← только id
+                                    onClick = { onOrderClick(order.id) }
                                 )
                             }
                         }
@@ -134,6 +136,7 @@ private fun OrderSwipeItem(
     price: Double,
     delivery: Double,
     timeLabel: String,
+    productId: String?,          // или Long?
     onRepeat: () -> Unit,
     onCancel: () -> Unit,
     onClick: () -> Unit
@@ -213,11 +216,18 @@ private fun OrderSwipeItem(
                             .background(Color(0xFFF5F5F5)),
                         contentAlignment = Alignment.Center
                     ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.bag_2),
-                            contentDescription = null,
-                            tint = Color.Gray
-                        )
+                        if (productId != null) {
+                            ProductImage(
+                                productId = productId,
+                                modifier = Modifier.fillMaxSize()
+                            )
+                        } else {
+                            Icon(
+                                painter = painterResource(id = R.drawable.bag_2),
+                                contentDescription = null,
+                                tint = Color.Gray
+                            )
+                        }
                     }
 
                     Spacer(Modifier.width(12.dp))
