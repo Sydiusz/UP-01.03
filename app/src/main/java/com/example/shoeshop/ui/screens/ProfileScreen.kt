@@ -1,5 +1,7 @@
 package com.example.shoeshop.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -17,12 +19,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.shoeshop.R
@@ -35,13 +40,13 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
 
     LaunchedEffect(Unit) {
         viewModel.loadProfile()
     }
 
     var isEditing by remember { mutableStateOf(false) }
-
     val currentProfile = uiState.profile
 
     var name by remember(currentProfile?.firstname) {
@@ -57,16 +62,27 @@ fun ProfileScreen(
         mutableStateOf(currentProfile?.phone ?: "")
     }
 
-    // локальное фото профиля из камеры
+    // локальное фото профиля
     var profileBitmap by remember { mutableStateOf<Bitmap?>(null) }
 
-    // лаунчер камеры: возвращает preview Bitmap
+    // лаунчер камеры (делает фото-превью)
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicturePreview()
     ) { bitmap ->
         if (bitmap != null) {
             profileBitmap = bitmap
-            // здесь при необходимости можешь вызвать viewModel.savePhoto(bitmap)
+            // тут можно вызвать viewModel.savePhoto(bitmap)
+        }
+    }
+
+    // лаунчер для запроса разрешения CAMERA
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            cameraLauncher.launch(null)
+        } else {
+            // можно показать Snackbar/Toast, что без разрешения камера недоступна
         }
     }
 
@@ -99,10 +115,10 @@ fun ProfileScreen(
             Column(
                 modifier = Modifier.fillMaxSize()
             ) {
-                // СКРОЛЛИРУЕМАЯ ЧАСТЬ
+                // скролл сверху
                 Column(
                     modifier = Modifier
-                        .weight(1f)                      // занимает всё доступное сверху
+                        .weight(1f)
                         .verticalScroll(rememberScrollState())
                         .padding(16.dp)
                 ) {
@@ -162,14 +178,36 @@ fun ProfileScreen(
                                 Image(
                                     bitmap = profileBitmap!!.asImageBitmap(),
                                     contentDescription = stringResource(R.string.profile_photo),
-                                    modifier = Modifier.fillMaxSize()
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.Crop          // 👈 обрезать по кругу, без полос
+                                )
+                            } else {
+                                Icon(
+                                    painter = painterResource(id = R.drawable.profile),
+                                    contentDescription = null,
+                                    tint = Color.Gray,
+                                    modifier = Modifier.size(48.dp)
                                 )
                             }
                         }
 
                         Spacer(modifier = Modifier.height(8.dp))
 
-                        TextButton(onClick = { cameraLauncher.launch(null) }) {
+                        TextButton(
+                            onClick = {
+                                val permission = Manifest.permission.CAMERA
+                                if (
+                                    ContextCompat.checkSelfPermission(
+                                        context,
+                                        permission
+                                    ) == PackageManager.PERMISSION_GRANTED
+                                ) {
+                                    cameraLauncher.launch(null)
+                                } else {
+                                    cameraPermissionLauncher.launch(permission)
+                                }
+                            }
+                        ) {
                             Text(
                                 text = stringResource(R.string.change_profile_photo),
                                 style = AppTypography.bodyRegular14,
@@ -180,7 +218,8 @@ fun ProfileScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = listOf(name, lastName).filter { it.isNotBlank() }
+                            text = listOf(name, lastName)
+                                .filter { it.isNotBlank() }
                                 .joinToString(" "),
                             style = AppTypography.bodyRegular20
                         )
@@ -226,7 +265,7 @@ fun ProfileScreen(
                     }
                 }
 
-                // ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ
+                // нижняя кнопка
                 if (isEditing) {
                     DisableButton(
                         text = stringResource(id = R.string.save_now),
@@ -251,7 +290,7 @@ fun ProfileScreen(
     }
 }
 
-    @Composable
+@Composable
 private fun InputField(
     label: String,
     value: String
@@ -310,7 +349,7 @@ private fun EditableField(
 
         OutlinedTextField(
             value = value,
-            onValueChange = onValueChange,     // здесь вводятся и русские, и латинские символы
+            onValueChange = onValueChange,
             modifier = Modifier.fillMaxWidth(),
             textStyle = AppTypography.bodyRegular16,
             shape = RoundedCornerShape(8.dp),
