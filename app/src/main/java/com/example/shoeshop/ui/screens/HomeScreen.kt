@@ -45,8 +45,10 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
+    onOrderClick: (Long) -> Unit = {},
+    initialTab: Int = 0// ← только Long
 ) {
-    var selected by remember { mutableIntStateOf(0) }
+    var selected by remember { mutableIntStateOf(initialTab) }
 
 
     // ОСТАВИТЬ и заменить на:
@@ -323,7 +325,11 @@ fun HomeScreen(
                     }
 
                     2 -> {
-                        OrdersScreen()
+                        OrdersScreen(
+                            onOrderClick = { id ->
+                                onOrderClick(id)       // ← только id
+                            }
+                        )
                     }
 
                     3 -> {

@@ -2,6 +2,7 @@
 package com.example.shoeshop.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -41,7 +42,8 @@ import com.example.shoeshop.ui.viewmodel.OrdersViewModel
 fun OrdersScreen(
     viewModel: OrdersViewModel = viewModel(),
     onRepeatOrder: (Long) -> Unit = {},
-    onCancelOrder: (Long) -> Unit = {}
+    onCancelOrder: (Long) -> Unit = {},
+    onOrderClick: (Long) -> Unit = {}      // ← только id
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
@@ -112,7 +114,8 @@ fun OrdersScreen(
                                     delivery = order.delivery,
                                     timeLabel = order.timeLabel,
                                     onRepeat = { onRepeatOrder(order.id) },
-                                    onCancel = { onCancelOrder(order.id) }
+                                    onCancel = { onCancelOrder(order.id) },
+                                    onClick = { onOrderClick(order.id) }   // ← только id
                                 )
                             }
                         }
@@ -132,7 +135,8 @@ private fun OrderSwipeItem(
     delivery: Double,
     timeLabel: String,
     onRepeat: () -> Unit,
-    onCancel: () -> Unit
+    onCancel: () -> Unit,
+    onClick: () -> Unit
 ) {
     val dismissState = rememberDismissState { value ->
         when (value) {
@@ -190,7 +194,9 @@ private fun OrderSwipeItem(
         },
         dismissContent = {
             Card(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onClick() },
                 shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(containerColor = Color.White)
             ) {
@@ -221,7 +227,7 @@ private fun OrderSwipeItem(
                     ) {
                         Text(
                             text = number,
-                            style = AppTypography.bodyMedium16, // номер крупнее
+                            style = AppTypography.bodyMedium16,
                             color = MaterialTheme.colorScheme.primary
                         )
                         Text(

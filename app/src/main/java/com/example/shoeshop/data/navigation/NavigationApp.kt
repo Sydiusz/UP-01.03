@@ -22,6 +22,7 @@ import com.example.shoeshop.ui.screens.FavoritesScreen
 import com.example.shoeshop.ui.screens.ForgotPasswordScreen
 import com.example.shoeshop.ui.screens.HomeScreen
 import com.example.shoeshop.ui.screens.OnboardScreen
+import com.example.shoeshop.ui.screens.OrderDetailsScreen
 import com.example.shoeshop.ui.screens.ProductDetailScreen
 import com.example.shoeshop.ui.screens.RegisterAccountScreen
 import com.example.shoeshop.ui.screens.SignInScreen
@@ -170,7 +171,11 @@ fun NavigationApp(navController: NavHostController) {
                 onSettingsClick = { },
                 onCategoryClick = { categoryName ->
                     navController.navigate("category/$categoryName")
-                }
+                },
+                onOrderClick = { orderId ->
+                    navController.navigate("order_details/$orderId")
+                },
+                initialTab = 0   // стартовый таб когда просто заходим на home
             )
         }
 
@@ -248,6 +253,18 @@ fun NavigationApp(navController: NavHostController) {
                         popUpTo("sign_in") { inclusive = false }
                     }
                 }
+            )
+        }
+        composable(
+            route = "order_details/{orderId}",
+            arguments = listOf(
+                navArgument("orderId") { type = NavType.LongType }
+            )
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getLong("orderId") ?: 0L
+            OrderDetailsScreen(
+                orderId = orderId,
+                onBackClick = { navController.popBackStack() }
             )
         }
 
