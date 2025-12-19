@@ -107,7 +107,10 @@ fun EmailVerificationScreen(
             style = MaterialTheme.typography.headlineLarge,
             fontSize = 28.sp,
             fontWeight = FontWeight.Bold,
-            modifier = Modifier.padding(bottom = 8.dp)
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            textAlign = TextAlign.Center
         )
 
         // Информационное сообщение

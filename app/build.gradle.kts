@@ -57,6 +57,7 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.ui.text)
     implementation(libs.androidx.ui)
+    implementation(libs.play.services.location)
     testImplementation(libs.junit)
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")

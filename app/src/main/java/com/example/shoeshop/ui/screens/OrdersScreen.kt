@@ -58,7 +58,7 @@ fun OrdersScreen(
                 title = {
                     Text(
                         text = stringResource(id = R.string.orders),
-                        style = AppTypography.headingRegular32
+                        style = AppTypography.headingSemiBold16
                     )
                 }
             )
@@ -143,13 +143,13 @@ private fun OrderSwipeItem(
 ) {
     val dismissState = rememberDismissState { value ->
         when (value) {
-            DismissValue.DismissedToStart -> {
-                onCancel()
-                false
-            }
             DismissValue.DismissedToEnd -> {
                 onRepeat()
-                false
+                false   // карточка остаётся
+            }
+            DismissValue.DismissedToStart -> {
+                onCancel()
+                true    // карточка исчезает
             }
             else -> true
         }

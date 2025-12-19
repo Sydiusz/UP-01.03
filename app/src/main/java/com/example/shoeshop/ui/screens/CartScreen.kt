@@ -31,6 +31,7 @@ import com.example.shoeshop.data.model.Product
 import com.example.shoeshop.ui.theme.AppTypography
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.style.TextAlign
 import com.example.shoeshop.ui.components.ProductImage
 
 data class CartUiItem(
@@ -60,7 +61,9 @@ fun CartScreen(
                 title = {
                     Text(
                         text = stringResource(R.string.cart),
-                        style = AppTypography.headingRegular32.copy(fontWeight = FontWeight.Bold)
+                        style = AppTypography.headingSemiBold16,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center          // 👈 центр по горизонтали
                     )
                 },
                 navigationIcon = {

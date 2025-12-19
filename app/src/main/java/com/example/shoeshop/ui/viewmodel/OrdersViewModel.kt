@@ -113,4 +113,48 @@ class OrdersViewModel(
 
         return sections
     }
+    fun repeatOrder(id: Long) {
+        viewModelScope.launch {
+            // берём полный заказ из репозитория
+            val historyResult = repo.getOrdersHistory()
+            if (historyResult.isFailure) {
+                _uiState.update {
+                    it.copy(errorMessage = historyResult.exceptionOrNull()?.message)
+                }
+                return@launch
+            }
+
+            val fullOrder = historyResult.getOrDefault(emptyList())
+                .firstOrNull { it.id == id }
+
+            if (fullOrder == null) {
+                _uiState.update {
+                    it.copy(errorMessage = "Заказ не найден")
+                }
+                return@launch
+            }
+
+            val repeatResult = repo.repeatOrder(fullOrder)
+            if (repeatResult.isFailure) {
+                _uiState.update {
+                    it.copy(errorMessage = repeatResult.exceptionOrNull()?.message)
+                }
+            } else {
+                // по желанию можно сразу обновить историю, чтобы увидеть новый заказ
+                loadOrders()
+            }
+        }
+    }
+    fun deleteOrder(id: Long) {
+        viewModelScope.launch {
+            val result = repo.deleteOrder(id)
+            if (result.isSuccess) {
+                loadOrders()   // обновляем список
+            } else {
+                _uiState.update {
+                    it.copy(errorMessage = result.exceptionOrNull()?.message)
+                }
+            }
+        }
+    }
 }

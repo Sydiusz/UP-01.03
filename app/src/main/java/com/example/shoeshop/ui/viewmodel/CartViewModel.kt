@@ -148,6 +148,27 @@ class CartViewModel(
             }
         }
     }
+    fun addProductFromOrder(
+        productId: String?,
+        title: String?,
+        price: Double,
+        count: Long
+    ) {
+        if (productId == null) return
+
+        viewModelScope.launch {
+            val userId = SessionManager.userId ?: return@launch
+
+            // 1. Создаём записи в корзине на сервере (count раз)
+            repeat(count.toInt().coerceAtLeast(1)) {
+                // если у CartRepository есть метод addToCart(productId: String)
+                cartRepository.addToCart(productId)
+            }
+
+            // 2. Перечитываем корзину, чтобы uiState.items обновился
+            loadCart()
+        }
+    }
 
 
 }

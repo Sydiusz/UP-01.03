@@ -16,6 +16,7 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.shoeshop.data.repository.OrdersHistoryRepository
 import com.example.shoeshop.ui.screens.CartScreen
 import com.example.shoeshop.ui.screens.CategoryProductsScreen
 import com.example.shoeshop.ui.screens.CheckoutScreen
@@ -187,11 +188,9 @@ fun NavigationApp(navController: NavHostController) {
             val homeViewModel: HomeViewModel = viewModel(backStackEntry)
             HomeScreen(
                 homeViewModel = homeViewModel,
-                onProductClick = { product ->
-                    navController.navigate("product/${product.id}")
-                },
+                onProductClick = { product -> navController.navigate("product/${product.id}") },
                 onCartClick = { navController.navigate("cart") },
-                onSearchClick = { /* ... */ },
+                onSearchClick = { /*...*/ },
                 onSettingsClick = { },
                 onCategoryClick = { categoryName ->
                     navController.navigate("category/$categoryName")
@@ -199,7 +198,78 @@ fun NavigationApp(navController: NavHostController) {
                 onOrderClick = { orderId ->
                     navController.navigate("order_details/$orderId")
                 },
+                onRepeatOrder = { orderId ->
+                    // сюда вставим логику перехода на checkout с повтором
+                    navController.navigate("checkout_repeat/$orderId")
+                },
                 initialTab = 0
+            )
+        }
+        composable(
+            route = "checkout_repeat/{orderId}",
+            arguments = listOf(navArgument("orderId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getLong("orderId") ?: 0L
+
+            val homeBackStackEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("home")
+            }
+
+            val cartViewModel: CartViewModel = viewModel(backStackEntry)
+            val checkoutViewModel: CheckoutViewModel = viewModel(backStackEntry)
+            val profileViewModel: ProfileViewModel = viewModel(homeBackStackEntry)
+
+            val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+
+            // 1) грузим профиль
+            LaunchedEffect(Unit) {
+                profileViewModel.loadProfile()
+            }
+
+            // 2) грузим заказ по orderId и наполняем корзину
+            LaunchedEffect(orderId) {
+                val repo = OrdersHistoryRepository()
+                val result = repo.getOrdersHistory()
+                if (result.isSuccess) {
+                    val fullOrder = result.getOrDefault(emptyList())
+                        .firstOrNull { it.id == orderId }
+
+                    fullOrder?.let { order ->
+                        // очищаем корзину и добавляем товары заказа
+                        cartViewModel.clearCart()
+                        order.items.forEach { item ->
+                            cartViewModel.addProductFromOrder(
+                                productId = item.product_id,
+                                title = item.title,
+                                price = item.coast ?: 0.0,
+                                count = item.count ?: 1L
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 3) обновляем контактные данные
+            LaunchedEffect(profileState.profile) {
+                val profile = profileState.profile
+                val emailFromPrefs = getUserEmail(context) ?: ""
+
+                checkoutViewModel.updateFromProfile(
+                    email = emailFromPrefs,
+                    phone = profile?.phone ?: "",
+                    address = profile?.address ?: ""
+                )
+            }
+
+            CheckoutScreen(
+                cartViewModel = cartViewModel,
+                checkoutViewModel = checkoutViewModel,
+                onBackClick = { navController.popBackStack() },
+                onOrderCreated = {
+                    // после успешного оформления можно вернуться на home
+                    navController.popBackStack("home", inclusive = false)
+                }
             )
         }
 
@@ -212,7 +282,7 @@ fun NavigationApp(navController: NavHostController) {
             EmailVerificationScreen(
                 email = emailArg,
                 onSignInClick = { navController.navigate("sign_in") },
-                onVerificationSuccess = { navController.navigate("home") }
+                onVerificationSuccess = { navController.navigate("sign_in") }
             )
         }
 
@@ -288,7 +358,7 @@ fun NavigationApp(navController: NavHostController) {
             val orderId = backStackEntry.arguments?.getLong("orderId") ?: 0L
             OrderDetailsScreen(
                 orderId = orderId,
-                onBackClick = { navController.popBackStack() } // важно: без navigate("home")
+                onBackClick = { navController.popBackStack() }
             )
         }
 

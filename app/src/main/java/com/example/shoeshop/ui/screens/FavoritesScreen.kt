@@ -43,7 +43,7 @@ fun FavoritesScreen(
                 title = {
                     Text(
                         text = stringResource(id = R.string.favourite),
-                        style = AppTypography.headingRegular32
+                        style = AppTypography.headingSemiBold16
                     )
                 },
                 navigationIcon = {

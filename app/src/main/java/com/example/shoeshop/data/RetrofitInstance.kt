@@ -6,7 +6,9 @@ import com.example.shoeshop.data.service.CategoriesService
 import com.example.shoeshop.data.service.FavouriteService
 import com.example.shoeshop.data.service.OrderItemsReadService
 import com.example.shoeshop.data.service.OrderItemsService
+import com.example.shoeshop.data.service.OrderItemsWriteService
 import com.example.shoeshop.data.service.OrderService
+import com.example.shoeshop.data.service.OrderWriteService
 import com.example.shoeshop.data.service.OrdersReadService
 import com.example.shoeshop.data.service.ProductsService
 import com.example.shoeshop.data.service.ProfileService
@@ -88,5 +90,6 @@ object RetrofitInstance {
 
     val orderItemsReadService: OrderItemsReadService =
         retrofitRest.create(OrderItemsReadService::class.java)
-
+    val orderWriteService: OrderWriteService = retrofitRest.create(OrderWriteService::class.java)
+    val orderItemsWriteService: OrderItemsWriteService = retrofitRest.create(OrderItemsWriteService::class.java)
 }

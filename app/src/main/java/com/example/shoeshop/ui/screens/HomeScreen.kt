@@ -35,6 +35,7 @@ import com.example.shoeshop.ui.components.ProductCard
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.FavoritesViewModel
 import com.example.shoeshop.ui.viewmodel.HomeViewModel
+import com.example.shoeshop.ui.viewmodel.OrdersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -46,12 +47,13 @@ fun HomeScreen(
     onSettingsClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
     onOrderClick: (Long) -> Unit = {},
-    initialTab: Int = 0// ← только Long
-) {
+    initialTab: Int = 0,// ← только Long
+    onRepeatOrder: (Long) -> Unit = {},
+
+    ) {
     var selected by remember { mutableIntStateOf(initialTab) }
+    val ordersViewModel: OrdersViewModel = viewModel()
 
-
-    // ОСТАВИТЬ и заменить на:
     val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val favoritesViewModel: FavoritesViewModel = viewModel()
 
@@ -196,7 +198,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     // Строка с поиском и настройками
@@ -326,9 +329,10 @@ fun HomeScreen(
 
                     2 -> {
                         OrdersScreen(
-                            onOrderClick = { id ->
-                                onOrderClick(id)       // ← только id
-                            }
+                            viewModel = ordersViewModel,
+                            onRepeatOrder = { id -> onRepeatOrder(id) },     // 👈 пробрасываем наружу
+                            onCancelOrder = { id -> ordersViewModel.deleteOrder(id) },
+                            onOrderClick = { id -> onOrderClick(id) }
                         )
                     }
 

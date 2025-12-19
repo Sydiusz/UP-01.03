@@ -34,7 +34,7 @@ class OrderRepository {
             phone = phone,
             address = address,
             user_id = userId,
-            payment_id = paymentId,
+            payment_id = null,
             delivery_coast = deliveryCost,
             status_id = NEW_STATUS_ID
         )

@@ -63,7 +63,7 @@ class CheckoutViewModel(
                 email = state.email,
                 phone = state.phone,
                 address = state.address,
-                paymentId = state.paymentId,
+                paymentId = null,
                 deliveryCost = state.deliveryCost,
                 items = items
             )

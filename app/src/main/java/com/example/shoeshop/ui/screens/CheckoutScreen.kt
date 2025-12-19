@@ -1,7 +1,11 @@
 package com.example.shoeshop.ui.screens
 
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -10,16 +14,26 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.shoeshop.R
+import com.example.shoeshop.data.services.LocationService
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.CartViewModel
 import com.example.shoeshop.ui.viewmodel.CheckoutUiState
 import com.example.shoeshop.ui.viewmodel.CheckoutViewModel
+import kotlinx.coroutines.launch
+import android.Manifest
+import androidx.compose.foundation.lazy.LazyColumn
+import com.example.shoeshop.data.model.PaymentUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -34,6 +48,36 @@ fun CheckoutScreen(
 
     var showSuccessDialog by remember { mutableStateOf(false) }
 
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val locationService = remember { LocationService(context) }
+    // временные заглушки способов оплаты
+    val payments = listOf(
+        PaymentUi(id = "1", cardName = "Visa •••• 1234", last4 = "1234"),
+        PaymentUi(id = "2", cardName = "MasterCard •••• 5678", last4 = "5678")
+    )
+    var expanded by remember { mutableStateOf(false) }
+
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        if (isGranted) {
+            scope.launch {
+                val coordinates = locationService.getCurrentLocation()
+                if (coordinates != null) {
+                    val newAddress = locationService.getAddressFromCoordinates(
+                        coordinates.first,
+                        coordinates.second
+                    )
+                    if (newAddress != null) {
+                        checkoutViewModel.updateAddress(newAddress.fullAddress)
+                    }
+                }
+            }
+        }
+    }
+
     LaunchedEffect(checkoutState.isSuccess) {
         if (checkoutState.isSuccess) {
             cartViewModel.clearCart()
@@ -47,8 +91,10 @@ fun CheckoutScreen(
             TopAppBar(
                 title = {
                     Text(
-                        text = stringResource(id = R.string.cart),
-                        style = AppTypography.headingRegular32
+                        text = stringResource(R.string.cart),
+                        style = AppTypography.headingSemiBold16,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
                     )
                 },
                 navigationIcon = {
@@ -60,6 +106,27 @@ fun CheckoutScreen(
                     }
                 }
             )
+        },
+        bottomBar = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFF5F5F5))
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Button(
+                    onClick = { checkoutViewModel.createOrder(cartState.items) },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(56.dp),
+                    shape = RoundedCornerShape(16.dp)
+                ) {
+                    Text(
+                        text = stringResource(id = R.string.confirm),
+                        style = AppTypography.bodyMedium16
+                    )
+                }
+            }
         }
     ) { paddingValues ->
         Box(
@@ -76,13 +143,13 @@ fun CheckoutScreen(
                     CircularProgressIndicator()
                 }
             } else {
-                Column(
+                LazyColumn(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(16.dp),
-                    verticalArrangement = Arrangement.SpaceBetween
+                        .padding(horizontal = 16.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
-                    Column {
+                    item {
                         ContactInfoBlock(
                             state = checkoutState,
                             onEmailChange = checkoutViewModel::updateEmail,
@@ -91,9 +158,99 @@ fun CheckoutScreen(
                             onToggleEditEmail = checkoutViewModel::toggleEditEmail,
                             onToggleEditPhone = checkoutViewModel::toggleEditPhone
                         )
+                    }
 
-                        Spacer(Modifier.height(16.dp))
+                    item {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(150.dp)
+                                .clip(RoundedCornerShape(16.dp))
+                                .background(Color.LightGray)
+                                .clickable {
+                                    val permission = Manifest.permission.ACCESS_FINE_LOCATION
+                                    if (
+                                        ContextCompat.checkSelfPermission(
+                                            context,
+                                            permission
+                                        ) == PackageManager.PERMISSION_GRANTED
+                                    ) {
+                                        scope.launch {
+                                            val coordinates = locationService.getCurrentLocation()
+                                            if (coordinates != null) {
+                                                val addr = locationService.getAddressFromCoordinates(
+                                                    coordinates.first,
+                                                    coordinates.second
+                                                )
+                                                if (addr != null) {
+                                                    checkoutViewModel.updateAddress(addr.fullAddress)
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        locationPermissionLauncher.launch(permission)
+                                    }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.map),
+                                contentDescription = null,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        }
+                    }
 
+                    item {
+                        Text(
+                            text = stringResource(R.string.payment_method),
+                            style = AppTypography.bodyMedium16,
+                            modifier = Modifier.padding(top = 8.dp, bottom = 8.dp)
+                        )
+
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(Color.White)
+                                .clickable { expanded = true }
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = payments.firstOrNull { it.id == checkoutState.paymentId }?.cardName
+                                        ?: "Выберите карту",
+                                    style = AppTypography.bodyMedium16
+                                )
+                                Icon(
+                                    painter = painterResource(id = R.drawable.arrow_down),
+                                    contentDescription = null
+                                )
+                            }
+
+                            DropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                payments.forEach { payment ->
+                                    DropdownMenuItem(
+                                        text = { Text(payment.cardName) },
+                                        onClick = {
+                                            checkoutViewModel.updatePaymentId(payment.id)
+                                            expanded = false
+                                        }
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    item {
                         SummaryBlock(
                             subtotal = cartState.items.sumOf { it.product.price * it.count },
                             delivery = checkoutState.deliveryCost.toDouble(),
@@ -102,18 +259,7 @@ fun CheckoutScreen(
                         )
                     }
 
-                    Button(
-                        onClick = { checkoutViewModel.createOrder(cartState.items) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(56.dp),
-                        shape = RoundedCornerShape(16.dp)
-                    ) {
-                        Text(
-                            text = stringResource(id = R.string.confirm),
-                            style = AppTypography.bodyMedium16
-                        )
-                    }
+                    item { Spacer(Modifier.height(80.dp)) } // небольшой отступ над кнопкой
                 }
             }
 
@@ -238,7 +384,7 @@ private fun ContactInfoBlock(
         OutlinedTextField(
             value = state.address,
             onValueChange = onAddressChange,
-            label = { Text("Адрес") },
+            label = { Text(stringResource(R.string.address)) },
             modifier = Modifier.fillMaxWidth()
         )
         // здесь позже можно добавить карту и способ оплаты
