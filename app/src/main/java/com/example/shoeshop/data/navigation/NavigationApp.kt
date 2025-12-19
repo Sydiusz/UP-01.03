@@ -102,6 +102,7 @@ fun NavigationApp(navController: NavHostController) {
             val cartViewModel: CartViewModel = viewModel(backStackEntry)
             val checkoutViewModel: CheckoutViewModel = viewModel(backStackEntry)
             val profileViewModel: ProfileViewModel = viewModel(homeBackStackEntry)
+            val homeViewModel: HomeViewModel = viewModel(homeBackStackEntry)
 
             val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
             val context = LocalContext.current
@@ -130,6 +131,8 @@ fun NavigationApp(navController: NavHostController) {
                 checkoutViewModel = checkoutViewModel,
                 onBackClick = { navController.popBackStack() },
                 onOrderCreated = {
+                    // сообщаем home, что корзина изменилась
+                    homeViewModel.refreshCartFlags()
                     navController.popBackStack("home", inclusive = false)
                 }
             )

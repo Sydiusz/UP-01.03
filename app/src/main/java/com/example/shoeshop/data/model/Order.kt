@@ -12,3 +12,5 @@ data class Order(
     val delivery_coast: Long?,
     val status_id: String?
 )
+
+

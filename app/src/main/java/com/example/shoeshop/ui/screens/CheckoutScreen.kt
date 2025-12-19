@@ -1,5 +1,6 @@
 package com.example.shoeshop.ui.screens
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -128,31 +129,41 @@ fun CheckoutScreen(
             if (showSuccessDialog) {
                 AlertDialog(
                     onDismissRequest = { /* не закрываем тапом вокруг */ },
-                    confirmButton = {
-                        Button(
-                            onClick = {
-                                showSuccessDialog = false
-                                onOrderCreated()
-                            },
-                            shape = RoundedCornerShape(16.dp)
-                        ) {
-                            Text("Вернуться к покупкам")
-                        }
-                    },
+                    confirmButton = {}, // не используем стандартную кнопку
                     title = null,
                     text = {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            // сюда можешь добавить картинку-конфетти
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Image(
+                                painter = painterResource(id = R.drawable.confetti),
+                                contentDescription = "Конфетти",
+                                modifier = Modifier
+                                    .size(140.dp)        // увеличенный размер
+                                    .padding(bottom = 16.dp)
+                            )
                             Text(
                                 text = "Вы успешно оформили заказ",
                                 style = AppTypography.bodyMedium16
                             )
+                            Spacer(Modifier.height(16.dp))
+                            Button(
+                                onClick = {
+                                    showSuccessDialog = false
+                                    onOrderCreated()
+                                },
+                                shape = RoundedCornerShape(16.dp)
+                            ) {
+                                Text("Вернуться к покупкам")
+                            }
                         }
                     },
                     shape = RoundedCornerShape(24.dp),
                     containerColor = Color.White
                 )
             }
+
+
         }
     }
 }

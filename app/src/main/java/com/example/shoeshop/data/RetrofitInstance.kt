@@ -4,8 +4,10 @@ import com.example.myfirstproject.data.service.UserManagementService
 import com.example.shoeshop.data.service.CartService
 import com.example.shoeshop.data.service.CategoriesService
 import com.example.shoeshop.data.service.FavouriteService
+import com.example.shoeshop.data.service.OrderItemsReadService
 import com.example.shoeshop.data.service.OrderItemsService
 import com.example.shoeshop.data.service.OrderService
+import com.example.shoeshop.data.service.OrdersReadService
 import com.example.shoeshop.data.service.ProductsService
 import com.example.shoeshop.data.service.ProfileService
 import okhttp3.Interceptor
@@ -26,7 +28,7 @@ object RetrofitInstance {
 
     private const val PROXY_HOST = "10.207.106.71"
     private const val PROXY_PORT = 3128
-    private const val USE_PROXY = false
+    private const val USE_PROXY = true
 
     var client: OkHttpClient = OkHttpClient.Builder()
         .apply {
@@ -81,4 +83,10 @@ object RetrofitInstance {
     val orderService: OrderService = retrofitRest.create(OrderService::class.java)
     val orderItemsService: OrderItemsService =
         retrofitRest.create(OrderItemsService::class.java)
+    val ordersReadService: OrdersReadService =
+        retrofitRest.create(OrdersReadService::class.java)
+
+    val orderItemsReadService: OrderItemsReadService =
+        retrofitRest.create(OrderItemsReadService::class.java)
+
 }

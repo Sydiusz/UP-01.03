@@ -126,7 +126,7 @@ fun HomeScreen(
                     Row {
                         IconButton(onClick = { selected = 2 }) {
                             Icon(
-                                painter = painterResource(id = R.drawable.notification),
+                                painter = painterResource(id = R.drawable.orders),
                                 contentDescription = "Notification",
                                 tint = if (selected == 2) MaterialTheme.colorScheme.primary else Color.Black
                             )
@@ -323,15 +323,7 @@ fun HomeScreen(
                     }
 
                     2 -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Уведомления",
-                                style = AppTypography.headingRegular32
-                            )
-                        }
+                        OrdersScreen()
                     }
 
                     3 -> {
