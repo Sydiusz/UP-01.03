@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">ShoeShop</string>
+    <string name="app_name">ShoeStore</string>
     <string name="welcome">Добро пожаловать</string>
     <string name="journey">Начнем путешествие</string>
     <string name="smart">Умная, великолепная и модная коллекция Изучите сейчас</string>
