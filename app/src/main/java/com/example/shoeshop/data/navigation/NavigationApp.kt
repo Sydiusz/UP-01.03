@@ -3,31 +3,60 @@ package com.example.shoeshop.data.navigation
 import EmailVerificationScreen
 import RecoveryVerificationScreen
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.example.shoeshop.data.repository.OrdersHistoryRepository
+import com.example.shoeshop.ui.screens.CartScreen
 import com.example.shoeshop.ui.screens.CategoryProductsScreen
+import com.example.shoeshop.ui.screens.CheckoutScreen
 import com.example.shoeshop.ui.screens.CreateNewPasswordScreen
 import com.example.shoeshop.ui.screens.FavoritesScreen
 import com.example.shoeshop.ui.screens.ForgotPasswordScreen
 import com.example.shoeshop.ui.screens.HomeScreen
 import com.example.shoeshop.ui.screens.OnboardScreen
+import com.example.shoeshop.ui.screens.OrderDetailsScreen
 import com.example.shoeshop.ui.screens.ProductDetailScreen
 import com.example.shoeshop.ui.screens.RegisterAccountScreen
 import com.example.shoeshop.ui.screens.SignInScreen
+import com.example.shoeshop.ui.viewmodel.CartViewModel
+import com.example.shoeshop.ui.viewmodel.CheckoutViewModel
 import com.example.shoeshop.ui.viewmodel.HomeViewModel
+import com.example.shoeshop.ui.viewmodel.ProfileViewModel
+import com.example.shoeshop.util.getUserEmail
+import com.example.shoeshop.util.isOnboardingCompleted
 import com.example.shoeshop.util.saveUserEmail
+import com.example.shoeshop.util.setOnboardingCompleted
 
 @Composable
 fun NavigationApp(navController: NavHostController) {
+    val context = LocalContext.current
+
+    var startDestination by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        startDestination = if (isOnboardingCompleted(context)) {
+            "sign_up"      // онбординг уже пройден → сразу к регистрации
+        } else {
+            "start_menu"   // показываем онбординг
+        }
+    }
+
+    // ждём, пока определится стартовый экран
+    val start = startDestination ?: return
     NavHost(
         navController = navController,
-        startDestination = "start_menu"
+        startDestination = start
     ) {
         composable("sign_up") {
             RegisterAccountScreen(
@@ -54,22 +83,103 @@ fun NavigationApp(navController: NavHostController) {
                 }
             )
         }
+        composable("cart") { backStackEntry ->
+            val homeBackStackEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("home")
+            }
+            val homeViewModel: HomeViewModel = viewModel(homeBackStackEntry)
+            val cartViewModel: CartViewModel = viewModel(backStackEntry)
 
+            val state by cartViewModel.uiState.collectAsStateWithLifecycle()
+
+            CartScreen(
+                items = state.items,
+                isLoading = state.isLoading,
+                onBackClick = { navController.popBackStack() },
+                onIncrement = { item ->
+                    cartViewModel.increment(item)
+                    homeViewModel.refreshCartFlags()
+                },
+                onDecrement = { item ->
+                    cartViewModel.decrement(item)
+                    homeViewModel.refreshCartFlags()
+                },
+                onRemove = { item ->
+                    cartViewModel.remove(item)
+                    homeViewModel.refreshCartFlags()
+                },
+                onCheckoutClick = {
+                    navController.navigate("checkout")
+                }
+            )
+        }
+
+        composable("checkout") { backStackEntry ->
+            val homeBackStackEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("home")
+            }
+
+            val cartViewModel: CartViewModel = viewModel(backStackEntry)
+            val checkoutViewModel: CheckoutViewModel = viewModel(backStackEntry)
+            val profileViewModel: ProfileViewModel = viewModel(homeBackStackEntry)
+            val homeViewModel: HomeViewModel = viewModel(homeBackStackEntry)
+
+            val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+
+            LaunchedEffect(Unit) {
+                profileViewModel.loadProfile()
+            }
+
+            LaunchedEffect(profileState.profile) {
+                val profile = profileState.profile
+                val emailFromPrefs = com.example.shoeshop.util.getUserEmail(context) ?: ""
+                android.util.Log.d(
+                    "CheckoutNav",
+                    "updateFromProfile email=$emailFromPrefs, phone=${profile?.phone}, addr=${profile?.address}"
+                )
+
+                checkoutViewModel.updateFromProfile(
+                    email = emailFromPrefs,
+                    phone = profile?.phone ?: "",
+                    address = profile?.address ?: ""
+                )
+            }
+
+            CheckoutScreen(
+                cartViewModel = cartViewModel,
+                checkoutViewModel = checkoutViewModel,
+                onBackClick = { navController.popBackStack() },
+                onOrderCreated = {
+                    // сообщаем home, что корзина изменилась
+                    homeViewModel.refreshCartFlags()
+                    navController.popBackStack("home", inclusive = false)
+                }
+            )
+        }
+
+
+        composable("start_menu") {
+            val context = LocalContext.current
+            OnboardScreen(
+                onGetStartedClick = {
+                    setOnboardingCompleted(context, true)       // помечаем онбординг как пройденный
+                    navController.navigate("sign_up") {
+                        popUpTo("start_menu") { inclusive = true }   // убираем онбординг из backstack
+                    }
+                }
+            )
+        }
         composable("forgot_password") { navBackStackEntry ->
             val context = LocalContext.current
 
             ForgotPasswordScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateToOtpVerification = { email ->
+                    // сохраняем email в SharedPreferences для дальнейшего использования
                     saveUserEmail(context, email)
                     navController.navigate("reset_password")
                 }
-            )
-        }
-
-        composable("start_menu") {
-            OnboardScreen(
-                onGetStartedClick = { navController.navigate("sign_up") },
             )
         }
 
@@ -78,14 +188,87 @@ fun NavigationApp(navController: NavHostController) {
             val homeViewModel: HomeViewModel = viewModel(backStackEntry)
             HomeScreen(
                 homeViewModel = homeViewModel,
-                onProductClick = { product ->
-                    navController.navigate("product/${product.id}")
-                },
-                onCartClick = { /* ... */ },
-                onSearchClick = { /* ... */ },
+                onProductClick = { product -> navController.navigate("product/${product.id}") },
+                onCartClick = { navController.navigate("cart") },
+                onSearchClick = { /*...*/ },
                 onSettingsClick = { },
                 onCategoryClick = { categoryName ->
                     navController.navigate("category/$categoryName")
+                },
+                onOrderClick = { orderId ->
+                    navController.navigate("order_details/$orderId")
+                },
+                onRepeatOrder = { orderId ->
+                    // сюда вставим логику перехода на checkout с повтором
+                    navController.navigate("checkout_repeat/$orderId")
+                },
+                initialTab = 0
+            )
+        }
+        composable(
+            route = "checkout_repeat/{orderId}",
+            arguments = listOf(navArgument("orderId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getLong("orderId") ?: 0L
+
+            val homeBackStackEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("home")
+            }
+
+            val cartViewModel: CartViewModel = viewModel(backStackEntry)
+            val checkoutViewModel: CheckoutViewModel = viewModel(backStackEntry)
+            val profileViewModel: ProfileViewModel = viewModel(homeBackStackEntry)
+
+            val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+
+            // 1) грузим профиль
+            LaunchedEffect(Unit) {
+                profileViewModel.loadProfile()
+            }
+
+            // 2) грузим заказ по orderId и наполняем корзину
+            LaunchedEffect(orderId) {
+                val repo = OrdersHistoryRepository()
+                val result = repo.getOrdersHistory()
+                if (result.isSuccess) {
+                    val fullOrder = result.getOrDefault(emptyList())
+                        .firstOrNull { it.id == orderId }
+
+                    fullOrder?.let { order ->
+                        // очищаем корзину и добавляем товары заказа
+                        cartViewModel.clearCart()
+                        order.items.forEach { item ->
+                            cartViewModel.addProductFromOrder(
+                                productId = item.product_id,
+                                title = item.title,
+                                price = item.coast ?: 0.0,
+                                count = item.count ?: 1L
+                            )
+                        }
+                    }
+                }
+            }
+
+            // 3) обновляем контактные данные
+            LaunchedEffect(profileState.profile) {
+                val profile = profileState.profile
+                val emailFromPrefs = getUserEmail(context) ?: ""
+
+                checkoutViewModel.updateFromProfile(
+                    email = emailFromPrefs,
+                    phone = profile?.phone ?: "",
+                    address = profile?.address ?: ""
+                )
+            }
+
+            CheckoutScreen(
+                cartViewModel = cartViewModel,
+                checkoutViewModel = checkoutViewModel,
+                onBackClick = { navController.popBackStack() },
+                onOrderCreated = {
+                    // после успешного оформления можно вернуться на home
+                    navController.popBackStack("home", inclusive = false)
                 }
             )
         }
@@ -99,7 +282,7 @@ fun NavigationApp(navController: NavHostController) {
             EmailVerificationScreen(
                 email = emailArg,
                 onSignInClick = { navController.navigate("sign_in") },
-                onVerificationSuccess = { navController.navigate("home") }
+                onVerificationSuccess = { navController.navigate("sign_in") }
             )
         }
 
@@ -144,9 +327,11 @@ fun NavigationApp(navController: NavHostController) {
             ProductDetailScreen(
                 productId = productId,
                 onBackClick = { navController.popBackStack() },
-                onAddToCart = { /* TODO */ },
+                onAddToCart = { product ->
+                    homeViewModel.toggleCart(product)      // ← обновляем флаг isInCart на Home
+                },
                 onToggleFavoriteInHome = { product ->
-                    homeViewModel.toggleFavorite(product)
+                    homeViewModel.toggleFavorite(product)  // уже было
                 }
             )
         }
@@ -164,6 +349,16 @@ fun NavigationApp(navController: NavHostController) {
                         popUpTo("sign_in") { inclusive = false }
                     }
                 }
+            )
+        }
+        composable(
+            route = "order_details/{orderId}",
+            arguments = listOf(navArgument("orderId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val orderId = backStackEntry.arguments?.getLong("orderId") ?: 0L
+            OrderDetailsScreen(
+                orderId = orderId,
+                onBackClick = { navController.popBackStack() }
             )
         }
 

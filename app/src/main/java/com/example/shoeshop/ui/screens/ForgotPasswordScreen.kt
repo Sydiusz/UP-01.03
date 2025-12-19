@@ -76,9 +76,9 @@ fun ForgotPasswordScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
+                .background(Color.White)
                 .padding(paddingValues)
-                .padding(23.dp)
-                .background(Color.White),
+                .padding(23.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             // Кнопка назад

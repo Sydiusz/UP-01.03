@@ -123,4 +123,20 @@ class ProductsRepository {
         }
     }
 
+    suspend fun getProductsByIds(ids: List<String>): Result<List<Product>> {
+        if (ids.isEmpty()) return Result.success(emptyList())
+        return try {
+            // Пример для Supabase/Postgrest: id=in.(id1,id2,...)
+            val idFilter = "in.(${ids.joinToString(",")})"
+            val response = RetrofitInstance.productsService.getProductsByIds(idFilter)
+            if (response.isSuccessful) {
+                Result.success(response.body().orEmpty())
+            } else {
+                Result.failure(Exception(response.errorBody()?.string()))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
 }

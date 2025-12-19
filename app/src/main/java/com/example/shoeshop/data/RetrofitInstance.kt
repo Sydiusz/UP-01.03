@@ -1,8 +1,15 @@
 package com.example.shoeshop.data
 
 import com.example.myfirstproject.data.service.UserManagementService
+import com.example.shoeshop.data.service.CartService
 import com.example.shoeshop.data.service.CategoriesService
 import com.example.shoeshop.data.service.FavouriteService
+import com.example.shoeshop.data.service.OrderItemsReadService
+import com.example.shoeshop.data.service.OrderItemsService
+import com.example.shoeshop.data.service.OrderItemsWriteService
+import com.example.shoeshop.data.service.OrderService
+import com.example.shoeshop.data.service.OrderWriteService
+import com.example.shoeshop.data.service.OrdersReadService
 import com.example.shoeshop.data.service.ProductsService
 import com.example.shoeshop.data.service.ProfileService
 import okhttp3.Interceptor
@@ -16,21 +23,18 @@ import java.security.cert.X509Certificate
 import java.util.concurrent.TimeUnit
 import javax.net.ssl.*
 
+// data/RetrofitInstance.kt
 object RetrofitInstance {
-    // Базовый URL для всех сервисов Supabase
     const val SUPABASE_URL = "https://yixipuxyofpafnvbaprs.supabase.co"
     const val REST_URL = "$SUPABASE_URL/rest/v1/"
 
-    // Прокси настройки
-    private const val PROXY_HOST = "10.207.106.71" // Замените на IP адрес вашего прокси
-    private const val PROXY_PORT = 3128           // Замените на порт вашего прокси
-    private const val USE_PROXY = false           // Включить/выключить использование прокси
+    private const val PROXY_HOST = "10.207.106.71"
+    private const val PROXY_PORT = 3128
+    private const val USE_PROXY = false
 
-    // Основной клиент для всех запросов
     var client: OkHttpClient = OkHttpClient.Builder()
         .apply {
             if (USE_PROXY) {
-                // Настройка HTTP прокси
                 proxy(Proxy(Proxy.Type.HTTP, InetSocketAddress(PROXY_HOST, PROXY_PORT)))
             }
         }
@@ -45,48 +49,47 @@ object RetrofitInstance {
                 )
                 .header("Content-Type", "application/json")
 
-            if (url.contains("/auth/")) {
-                // Для auth-эндпоинтов НЕ подставляем свой Authorization
-                // и НЕ удаляем его, если он уже есть
-                // просто оставляем apikey
-                // ничего больше не делаем
-            } else {
-                // Для rest/v1/* используем service key как Authorization
+            if (!url.contains("/auth/")) {
                 builder.header(
                     "Authorization",
                     "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlpeGlwdXh5b2ZwYWZudmJhcHJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU4NDM3OTMsImV4cCI6MjA4MTQxOTc5M30.-GHt_7WKFHWMzhN9MerHX7a3ZVW_IJDBIDmIxXW5gJ8"
                 )
             }
 
-            val request = builder.method(original.method, original.body).build()
-            chain.proceed(request)
+            chain.proceed(builder.method(original.method, original.body).build())
         }
-        .connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(30, TimeUnit.SECONDS)
-        .writeTimeout(30, TimeUnit.SECONDS)
+        // немного меньше connect, побольше read — комфортно для прокси
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .readTimeout(40, TimeUnit.SECONDS)
+        .writeTimeout(40, TimeUnit.SECONDS)
         .build()
 
-    // Retrofit для авторизации (использует основной URL)
     private val retrofitAuth = Retrofit.Builder()
-        .baseUrl(SUPABASE_URL) // Базовый URL для auth
+        .baseUrl(SUPABASE_URL)
         .addConverterFactory(GsonConverterFactory.create())
         .client(client)
         .build()
 
-    // Retrofit для товаров и категорий (использует REST URL)
     private val retrofitRest = Retrofit.Builder()
-        .baseUrl(REST_URL) // Базовый URL для REST API
+        .baseUrl(REST_URL)
         .addConverterFactory(GsonConverterFactory.create())
         .client(client)
         .build()
 
-    // Сервисы
     val userManagementService = retrofitAuth.create(UserManagementService::class.java)
     val productsService = retrofitRest.create(ProductsService::class.java)
     val categoriesService = retrofitRest.create(CategoriesService::class.java)
     val favouriteService: FavouriteService = retrofitRest.create(FavouriteService::class.java)
     val profileService: ProfileService = retrofitRest.create(ProfileService::class.java)
+    val cartService: CartService = retrofitRest.create(CartService::class.java)
+    val orderService: OrderService = retrofitRest.create(OrderService::class.java)
+    val orderItemsService: OrderItemsService =
+        retrofitRest.create(OrderItemsService::class.java)
+    val ordersReadService: OrdersReadService =
+        retrofitRest.create(OrdersReadService::class.java)
 
-
-
+    val orderItemsReadService: OrderItemsReadService =
+        retrofitRest.create(OrderItemsReadService::class.java)
+    val orderWriteService: OrderWriteService = retrofitRest.create(OrderWriteService::class.java)
+    val orderItemsWriteService: OrderItemsWriteService = retrofitRest.create(OrderItemsWriteService::class.java)
 }

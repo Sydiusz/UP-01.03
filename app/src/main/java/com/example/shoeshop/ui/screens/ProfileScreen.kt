@@ -6,8 +6,10 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -95,128 +97,136 @@ fun ProfileScreen(
             }
         } else {
             Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(16.dp)
+                modifier = Modifier.fillMaxSize()
             ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Spacer(modifier = Modifier.size(40.dp))
-                    Text(
-                        text = stringResource(id = R.string.profile),
-                        style = AppTypography.headingSemiBold16,
-                        textAlign = TextAlign.Center,
-                        modifier = Modifier.weight(1f)
-                    )
-                    IconButton(
-                        onClick = {
-                            if (isEditing && original != null) {
-                                name = original.firstname ?: ""
-                                lastName = original.lastname ?: ""
-                                address = original.address ?: ""
-                                phone = original.phone ?: ""
-                            }
-                            isEditing = !isEditing
-                        },
-                        modifier = Modifier.size(40.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.edit),
-                            contentDescription = if (isEditing)
-                                stringResource(R.string.cancel)
-                            else
-                                stringResource(R.string.edit),
-                            tint = Color.Gray
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(24.dp))
-
+                // СКРОЛЛИРУЕМАЯ ЧАСТЬ
                 Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalAlignment = Alignment.CenterHorizontally
+                    modifier = Modifier
+                        .weight(1f)                      // занимает всё доступное сверху
+                        .verticalScroll(rememberScrollState())
+                        .padding(16.dp)
                 ) {
-                    Box(
+                    // заголовок
+                    Row(
                         modifier = Modifier
-                            .size(100.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFE0E0E0)),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // если есть фото из камеры — показываем его
-                        if (profileBitmap != null) {
-                            Image(
-                                bitmap = profileBitmap!!.asImageBitmap(),
-                                contentDescription = stringResource(R.string.profile_photo),
-                                modifier = Modifier.fillMaxSize()
+                        Spacer(modifier = Modifier.size(40.dp))
+                        Text(
+                            text = stringResource(id = R.string.profile),
+                            style = AppTypography.headingSemiBold16,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.weight(1f)
+                        )
+                        IconButton(
+                            onClick = {
+                                if (isEditing && original != null) {
+                                    name = original.firstname ?: ""
+                                    lastName = original.lastname ?: ""
+                                    address = original.address ?: ""
+                                    phone = original.phone ?: ""
+                                }
+                                isEditing = !isEditing
+                            },
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(id = R.drawable.edit),
+                                contentDescription = if (isEditing)
+                                    stringResource(R.string.cancel)
+                                else
+                                    stringResource(R.string.edit),
+                                tint = Color.Gray
                             )
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    TextButton(
-                        onClick = { cameraLauncher.launch(null) }
+                    // аватар + имя
+                    Column(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalAlignment = Alignment.CenterHorizontally
                     ) {
+                        Box(
+                            modifier = Modifier
+                                .size(100.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFE0E0E0)),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (profileBitmap != null) {
+                                Image(
+                                    bitmap = profileBitmap!!.asImageBitmap(),
+                                    contentDescription = stringResource(R.string.profile_photo),
+                                    modifier = Modifier.fillMaxSize()
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
+                        TextButton(onClick = { cameraLauncher.launch(null) }) {
+                            Text(
+                                text = stringResource(R.string.change_profile_photo),
+                                style = AppTypography.bodyRegular14,
+                                color = Color(0xFF2196F3)
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(8.dp))
+
                         Text(
-                            text = stringResource(R.string.change_profile_photo),
-                            style = AppTypography.bodyRegular14,
-                            color = Color(0xFF2196F3)
+                            text = listOf(name, lastName).filter { it.isNotBlank() }
+                                .joinToString(" "),
+                            style = AppTypography.bodyRegular20
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
-                    Text(
-                        text = listOf(name, lastName).filter { it.isNotBlank() }.joinToString(" "),
-                        style = AppTypography.bodyRegular20
-                    )
-                }
-
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    if (isEditing) {
-                        EditableField(
-                            label = stringResource(id = R.string.your_name),
-                            value = name,
-                            onValueChange = { name = it }       // сюда можно вводить русские символы
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        EditableField(
-                            label = stringResource(id = R.string.last_name),
-                            value = lastName,
-                            onValueChange = { lastName = it }
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        EditableField(
-                            label = stringResource(id = R.string.address),
-                            value = address,
-                            onValueChange = { address = it }
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        EditableField(
-                            label = stringResource(id = R.string.phone_number),
-                            value = phone,
-                            onValueChange = { phone = it }
-                        )
-                    } else {
-                        InputField(stringResource(id = R.string.your_name), name)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        InputField(stringResource(id = R.string.last_name), lastName)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        InputField(stringResource(id = R.string.address), address)
-                        Spacer(modifier = Modifier.height(16.dp))
-                        InputField(stringResource(id = R.string.phone_number), phone)
+                    // поля
+                    Column(modifier = Modifier.fillMaxWidth()) {
+                        if (isEditing) {
+                            EditableField(
+                                label = stringResource(id = R.string.your_name),
+                                value = name,
+                                onValueChange = { name = it }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            EditableField(
+                                label = stringResource(id = R.string.last_name),
+                                value = lastName,
+                                onValueChange = { lastName = it }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            EditableField(
+                                label = stringResource(id = R.string.address),
+                                value = address,
+                                onValueChange = { address = it }
+                            )
+                            Spacer(modifier = Modifier.height(16.dp))
+                            EditableField(
+                                label = stringResource(id = R.string.phone_number),
+                                value = phone,
+                                onValueChange = { phone = it }
+                            )
+                        } else {
+                            InputField(stringResource(id = R.string.your_name), name)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            InputField(stringResource(id = R.string.last_name), lastName)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            InputField(stringResource(id = R.string.address), address)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            InputField(stringResource(id = R.string.phone_number), phone)
+                        }
                     }
                 }
 
-                Spacer(modifier = Modifier.weight(1f))
-
+                // ФИКСИРОВАННАЯ НИЖНЯЯ ПАНЕЛЬ
                 if (isEditing) {
                     DisableButton(
                         text = stringResource(id = R.string.save_now),
@@ -231,7 +241,8 @@ fun ProfileScreen(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(56.dp),
+                            .height(56.dp)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
                         enabled = hasChanges
                     )
                 }
@@ -240,7 +251,7 @@ fun ProfileScreen(
     }
 }
 
-@Composable
+    @Composable
 private fun InputField(
     label: String,
     value: String

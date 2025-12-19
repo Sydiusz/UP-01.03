@@ -128,8 +128,8 @@ fun RegisterAccountScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(23.dp)
-            .background(MaterialTheme.colorScheme.background),
+            .background(Color.White)
+            .padding(23.dp),
         verticalArrangement = Arrangement.Center,
     ) {
         BackButton(

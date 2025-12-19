@@ -35,6 +35,7 @@ import com.example.shoeshop.ui.components.ProductCard
 import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.viewmodel.FavoritesViewModel
 import com.example.shoeshop.ui.viewmodel.HomeViewModel
+import com.example.shoeshop.ui.viewmodel.OrdersViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,11 +46,14 @@ fun HomeScreen(
     onSearchClick: () -> Unit,
     onSettingsClick: () -> Unit = {},
     onCategoryClick: (String) -> Unit = {},
-) {
-    var selected by remember { mutableIntStateOf(0) }
+    onOrderClick: (Long) -> Unit = {},
+    initialTab: Int = 0,// ← только Long
+    onRepeatOrder: (Long) -> Unit = {},
 
+    ) {
+    var selected by remember { mutableIntStateOf(initialTab) }
+    val ordersViewModel: OrdersViewModel = viewModel()
 
-    // ОСТАВИТЬ и заменить на:
     val uiState by homeViewModel.uiState.collectAsStateWithLifecycle()
     val favoritesViewModel: FavoritesViewModel = viewModel()
 
@@ -126,7 +130,7 @@ fun HomeScreen(
                     Row {
                         IconButton(onClick = { selected = 2 }) {
                             Icon(
-                                painter = painterResource(id = R.drawable.notification),
+                                painter = painterResource(id = R.drawable.orders),
                                 contentDescription = "Notification",
                                 tint = if (selected == 2) MaterialTheme.colorScheme.primary else Color.Black
                             )
@@ -194,7 +198,8 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(bottom = 12.dp),
-                        textAlign = TextAlign.Center
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     // Строка с поиском и настройками
@@ -292,7 +297,11 @@ fun HomeScreen(
                                     onProductClick = onProductClick,
                                     onFavoriteClick = { product ->
                                         homeViewModel.toggleFavorite(product)
+                                    },
+                                    onAddToCartClick = { product ->
+                                        homeViewModel.toggleCart(product)      // ← тут вызываем ViewModel
                                     }
+
                                 )
                             }
 
@@ -310,20 +319,21 @@ fun HomeScreen(
                             onProductClick = onProductClick,
                             onToggleFavoriteInHome = { product ->
                                 homeViewModel.toggleFavorite(product)
+                            },
+                            onToggleCartInHome = { product ->
+                                homeViewModel.toggleCart(product)
                             }
                         )
+
                     }
 
                     2 -> {
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = "Уведомления",
-                                style = AppTypography.headingRegular32
-                            )
-                        }
+                        OrdersScreen(
+                            viewModel = ordersViewModel,
+                            onRepeatOrder = { id -> onRepeatOrder(id) },     // 👈 пробрасываем наружу
+                            onCancelOrder = { id -> ordersViewModel.deleteOrder(id) },
+                            onOrderClick = { id -> onOrderClick(id) }
+                        )
                     }
 
                     3 -> {
@@ -387,7 +397,8 @@ private fun CategoryChip(
 private fun PopularSection(
     products: List<Product>,
     onProductClick: (Product) -> Unit,
-    onFavoriteClick: (Product) -> Unit
+    onFavoriteClick: (Product) -> Unit,
+    onAddToCartClick: (Product) -> Unit
 ) {
     Column {
         // Заголовок раздела
@@ -434,9 +445,7 @@ private fun PopularSection(
                         product = product,
                         onProductClick = { onProductClick(product) },
                         onFavoriteClick = { onFavoriteClick(product) },
-                        onAddToCartClick = {
-                                   // реализуешь во HomeViewModel
-                        },
+                        onAddToCartClick = { onAddToCartClick(product) },  // ← вместо homeViewModel
                         modifier = Modifier
                     )
                 }
