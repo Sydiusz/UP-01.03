@@ -26,7 +26,7 @@ class CartViewModel(
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CartScreenState())
-    val uiState: StateFlow<CartScreenState> = _uiState.asStateFlow()
+    val uiState: StateFlow<CartScreenState> = _uiState
 
     init {
         loadCart()
@@ -132,4 +132,22 @@ class CartViewModel(
             }
         }
     }
+    fun clearCart() {
+        val currentItems = uiState.value.items
+
+        // оптимистично очищаем UI
+        _uiState.value = _uiState.value.copy(items = emptyList())
+
+        viewModelScope.launch {
+            currentItems.forEach { item ->
+                val result = cartRepository.removeFromCartById(item.id)
+                if (result.isFailure) {
+                    loadCart()
+                    return@launch
+                }
+            }
+        }
+    }
+
+
 }

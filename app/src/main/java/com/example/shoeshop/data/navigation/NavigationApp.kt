@@ -3,6 +3,7 @@ package com.example.shoeshop.data.navigation
 import EmailVerificationScreen
 import RecoveryVerificationScreen
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
@@ -15,6 +16,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.example.shoeshop.ui.screens.CartScreen
 import com.example.shoeshop.ui.screens.CategoryProductsScreen
+import com.example.shoeshop.ui.screens.CheckoutScreen
 import com.example.shoeshop.ui.screens.CreateNewPasswordScreen
 import com.example.shoeshop.ui.screens.FavoritesScreen
 import com.example.shoeshop.ui.screens.ForgotPasswordScreen
@@ -24,7 +26,10 @@ import com.example.shoeshop.ui.screens.ProductDetailScreen
 import com.example.shoeshop.ui.screens.RegisterAccountScreen
 import com.example.shoeshop.ui.screens.SignInScreen
 import com.example.shoeshop.ui.viewmodel.CartViewModel
+import com.example.shoeshop.ui.viewmodel.CheckoutViewModel
 import com.example.shoeshop.ui.viewmodel.HomeViewModel
+import com.example.shoeshop.ui.viewmodel.ProfileViewModel
+import com.example.shoeshop.util.getUserEmail
 import com.example.shoeshop.util.saveUserEmail
 
 @Composable
@@ -64,6 +69,7 @@ fun NavigationApp(navController: NavHostController) {
             }
             val homeViewModel: HomeViewModel = viewModel(homeBackStackEntry)
             val cartViewModel: CartViewModel = viewModel(backStackEntry)
+
             val state by cartViewModel.uiState.collectAsStateWithLifecycle()
 
             CartScreen(
@@ -72,7 +78,7 @@ fun NavigationApp(navController: NavHostController) {
                 onBackClick = { navController.popBackStack() },
                 onIncrement = { item ->
                     cartViewModel.increment(item)
-                    homeViewModel.refreshCartFlags()   // <- сразу обновляем иконки
+                    homeViewModel.refreshCartFlags()
                 },
                 onDecrement = { item ->
                     cartViewModel.decrement(item)
@@ -82,25 +88,69 @@ fun NavigationApp(navController: NavHostController) {
                     cartViewModel.remove(item)
                     homeViewModel.refreshCartFlags()
                 },
-                onCheckoutClick = { /* TODO */ }
+                onCheckoutClick = {
+                    navController.navigate("checkout")
+                }
             )
         }
 
+        composable("checkout") { backStackEntry ->
+            val homeBackStackEntry = remember(backStackEntry) {
+                navController.getBackStackEntry("home")
+            }
+
+            val cartViewModel: CartViewModel = viewModel(backStackEntry)
+            val checkoutViewModel: CheckoutViewModel = viewModel(backStackEntry)
+            val profileViewModel: ProfileViewModel = viewModel(homeBackStackEntry)
+
+            val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+            val context = LocalContext.current
+
+            LaunchedEffect(Unit) {
+                profileViewModel.loadProfile()
+            }
+
+            LaunchedEffect(profileState.profile) {
+                val profile = profileState.profile
+                val emailFromPrefs = com.example.shoeshop.util.getUserEmail(context) ?: ""
+                android.util.Log.d(
+                    "CheckoutNav",
+                    "updateFromProfile email=$emailFromPrefs, phone=${profile?.phone}, addr=${profile?.address}"
+                )
+
+                checkoutViewModel.updateFromProfile(
+                    email = emailFromPrefs,
+                    phone = profile?.phone ?: "",
+                    address = profile?.address ?: ""
+                )
+            }
+
+            CheckoutScreen(
+                cartViewModel = cartViewModel,
+                checkoutViewModel = checkoutViewModel,
+                onBackClick = { navController.popBackStack() },
+                onOrderCreated = {
+                    navController.popBackStack("home", inclusive = false)
+                }
+            )
+        }
+
+
+        composable("start_menu") {
+            OnboardScreen(
+                onGetStartedClick = { navController.navigate("sign_up") },
+            )
+        }
         composable("forgot_password") { navBackStackEntry ->
             val context = LocalContext.current
 
             ForgotPasswordScreen(
                 onBackClick = { navController.popBackStack() },
                 onNavigateToOtpVerification = { email ->
+                    // сохраняем email в SharedPreferences для дальнейшего использования
                     saveUserEmail(context, email)
                     navController.navigate("reset_password")
                 }
-            )
-        }
-
-        composable("start_menu") {
-            OnboardScreen(
-                onGetStartedClick = { navController.navigate("sign_up") },
             )
         }
 

@@ -87,11 +87,7 @@ fun ShoeShopTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit
 ) {
-    val colorScheme = if (darkTheme) {
-        DarkColorScheme
-    } else {
-        LightColorScheme
-    }
+     val colorScheme = LightColorScheme
 
     MaterialTheme(
         colorScheme = colorScheme,

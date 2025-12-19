@@ -31,6 +31,7 @@ import com.example.shoeshop.ui.theme.AppTypography
 import com.example.shoeshop.ui.theme.ShoeShopTheme
 import com.example.shoeshop.ui.viewmodel.SignInState
 import com.example.shoeshop.ui.viewmodel.SignInViewModel
+import com.example.shoeshop.util.saveUserEmail
 
 @Composable
 fun SignInScreen(
@@ -56,7 +57,8 @@ fun SignInScreen(
     LaunchedEffect(signInState) {
         when (signInState) {
             is SignInState.Success -> {
-
+                // сохраняем email пользователя
+                saveUserEmail(context, email)
                 onSignInClick()
                 viewModel.resetState()
             }
@@ -65,7 +67,7 @@ fun SignInScreen(
                 showErrorDialog = true
                 viewModel.resetState()
             }
-            else -> {}
+            else -> Unit
         }
     }
 
@@ -89,8 +91,8 @@ fun SignInScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(23.dp)
-            .background(Color.White),
+            .background(Color.White)
+            .padding(23.dp),
         verticalArrangement = Arrangement.Center,
     ) {
         BackButton(
