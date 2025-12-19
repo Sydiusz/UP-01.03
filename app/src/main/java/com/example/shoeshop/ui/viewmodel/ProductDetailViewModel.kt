@@ -19,6 +19,12 @@ class ProductDetailViewModel(
     private val _product = MutableStateFlow<Product?>(null)
     val product: StateFlow<Product?> = _product.asStateFlow()
 
+    private val _related = MutableStateFlow<List<Product>>(emptyList())
+    val related: StateFlow<List<Product>> = _related.asStateFlow()
+
+    private val _selectedIndex = MutableStateFlow(0)
+    val selectedIndex: StateFlow<Int> = _selectedIndex.asStateFlow()
+
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
 
@@ -35,35 +41,28 @@ class ProductDetailViewModel(
                 if (result.isSuccess) {
                     var loaded = result.getOrNull()
 
-                    // если есть categoryId — подтянем имя категории
+                    // категория
                     if (loaded?.categoryId != null) {
-                        try {
-                            val categoriesResult = repository.getCategories()
-                            if (categoriesResult.isSuccess) {
-                                val categories = categoriesResult.getOrDefault(emptyList())
-                                val category = categories.firstOrNull { it.id == loaded.categoryId }
-                                if (category != null) {
-                                    loaded = loaded.copy(displayCategory = category.name)
-                                }
+                        val categoriesResult = repository.getCategories()
+                        if (categoriesResult.isSuccess) {
+                            val categories = categoriesResult.getOrDefault(emptyList())
+                            val category = categories.firstOrNull { it.id == loaded.categoryId }
+                            if (category != null) {
+                                loaded = loaded.copy(displayCategory = category.name)
                             }
-                        } catch (_: Exception) {
-                            // если не получилось, просто оставим id
                         }
                     }
 
-                    // подтягиваем флаг избранного
+                    // избранное
                     val userId = SessionManager.userId
                     if (userId != null && loaded != null) {
-                        try {
-                            val isFavResult = favouriteRepository.isFavorite(userId, loaded.id)
-                            val isFav = isFavResult.getOrDefault(false)
-                            loaded = loaded.copy(isFavorite = isFav)
-                        } catch (_: Exception) {
-                            // если не получилось, просто не трогаем isFavorite
-                        }
+                        val isFavResult = favouriteRepository.isFavorite(userId, loaded.id)
+                        val isFav = isFavResult.getOrDefault(false)
+                        loaded = loaded.copy(isFavorite = isFav)   // ← важно
                     }
 
                     _product.value = loaded
+                    loadRelated(loaded)
                 } else {
                     _error.value = result.exceptionOrNull()?.message
                         ?: "Не удалось загрузить товар"
@@ -76,6 +75,35 @@ class ProductDetailViewModel(
         }
     }
 
+
+    private suspend fun loadRelated(base: Product?) {
+        if (base?.categoryId == null) return
+        try {
+            val allResult = repository.getProductsByCategory(base.categoryId!!)
+            if (allResult.isSuccess) {
+                var list = allResult.getOrDefault(emptyList())
+                    .map { it.copy(displayCategory = base.displayCategory) }
+
+                // Проставляем isFavorite для related‑товаров
+                val userId = SessionManager.userId
+                if (userId != null && list.isNotEmpty()) {
+                    val favIdsResult = favouriteRepository.getFavoritesForUser(userId)
+                    val favIds = favIdsResult.getOrDefault(emptyList())
+                    list = list.map { p ->
+                        p.copy(isFavorite = favIds.contains(p.id))
+                    }
+                }
+
+                _related.value = list
+
+                // индекс текущего товара в списке
+                val idx = list.indexOfFirst { it.id == base.id }
+                _selectedIndex.value = if (idx >= 0) idx else 0
+            }
+        } catch (_: Exception) {}
+    }
+
+
     fun toggleFavorite(product: Product) {
         val userId = SessionManager.userId ?: run {
             _error.value = "Пользователь не авторизован"
@@ -85,22 +113,35 @@ class ProductDetailViewModel(
         viewModelScope.launch {
             val favResult = favouriteRepository.isFavorite(userId, product.id)
             val isFavoriteInDb = favResult.getOrDefault(false)
+            val newIsFavorite = !isFavoriteInDb
 
-            // оптимистично обновляем UI
-            _product.value = product.copy(isFavorite = !isFavoriteInDb)
+            // обновляем основной продукт
+            _product.value = _product.value?.copy(isFavorite = newIsFavorite)
 
-            val result = if (!isFavoriteInDb) {
+            // обновляем тот же товар в related
+            _related.value = _related.value.map {
+                if (it.id == product.id) it.copy(isFavorite = newIsFavorite) else it
+            }
+
+            val result = if (newIsFavorite) {
                 favouriteRepository.addFavorite(userId, product.id)
             } else {
                 favouriteRepository.removeFavorite(userId, product.id)
             }
 
             if (result.isFailure) {
-                // откат, если запрос не удался
-                _product.value = product
+                // откат
+                _product.value = _product.value?.copy(isFavorite = isFavoriteInDb)
+                _related.value = _related.value.map {
+                    if (it.id == product.id) it.copy(isFavorite = isFavoriteInDb) else it
+                }
                 _error.value =
                     "Не удалось обновить избранное: ${result.exceptionOrNull()?.message}"
             }
         }
     }
+    fun selectRelated(index: Int) {
+        _selectedIndex.value = index
+    }
+
 }

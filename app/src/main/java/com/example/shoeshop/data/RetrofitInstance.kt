@@ -28,7 +28,7 @@ object RetrofitInstance {
 
     private const val PROXY_HOST = "10.207.106.71"
     private const val PROXY_PORT = 3128
-    private const val USE_PROXY = true
+    private const val USE_PROXY = false
 
     var client: OkHttpClient = OkHttpClient.Builder()
         .apply {

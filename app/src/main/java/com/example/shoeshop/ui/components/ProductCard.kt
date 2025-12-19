@@ -9,21 +9,18 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.FavoriteBorder
 import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.example.shoeshop.R
 import com.example.shoeshop.data.model.Product
 import com.example.shoeshop.ui.theme.AppTypography
-import com.example.shoeshop.R
 
 @Composable
 fun ProductCard(
@@ -34,7 +31,7 @@ fun ProductCard(
     modifier: Modifier = Modifier
 ) {
     Card(
-        modifier = Modifier
+        modifier = modifier
             .width(160.dp)
             .clickable { onProductClick() },
         shape = RoundedCornerShape(16.dp),
@@ -43,33 +40,16 @@ fun ProductCard(
     ) {
         Column {
             Box(
-                modifier = modifier
+                modifier = Modifier
                     .height(120.dp)
-                    .background(Color(0xFFF5F5F5))
             ) {
-                if (product.imageResId != null) {
-                    androidx.compose.foundation.Image(
-                        painter = painterResource(id = product.imageResId),
-                        contentDescription = product.name,
-                        contentScale = ContentScale.Crop,
-                        modifier = Modifier.fillMaxSize()
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = product.name.take(2).uppercase(),
-                            style = AppTypography.headingRegular32.copy(
-                                fontSize = 24.sp,
-                                color = Color.Gray
-                            )
-                        )
-                    }
-                }
+                // Картинка из Supabase через ProductImage
+                ProductImage(
+                    productId = product.id,
+                    modifier = Modifier.fillMaxSize()
+                )
 
-                // избранное (слева)
+                // избранное (слева сверху)
                 IconButton(
                     onClick = onFavoriteClick,
                     modifier = Modifier
@@ -92,7 +72,7 @@ fun ProductCard(
                 modifier = Modifier
                     .padding(horizontal = 12.dp, vertical = 8.dp)
             ) {
-                if (product.isBestSeller) {
+                if (product.isBestSeller == true) {
                     Text(
                         text = "BEST SELLER",
                         style = AppTypography.bodyRegular12.copy(
@@ -120,41 +100,39 @@ fun ProductCard(
                 ) {
                     // цена слева
                     Text(
-                        text = "P${String.format("%.2f", product.price)}",
+                        text = product.getFormattedPrice(),  // используем метод из Product
                         style = AppTypography.bodyMedium16.copy(
                             fontWeight = FontWeight.Bold
                         )
                     )
 
-                            // кнопка справа
-                            IconButton(
-                                onClick = onAddToCartClick,
-                                modifier = Modifier
-                                    .size(32.dp)
-                                    .background(
-                                        color = Color(0xFF03A9F4),
-                                        shape = RoundedCornerShape(13.dp)
-                                    )
-                            ) {
-                                Icon(
-                                    painter = painterResource(
-                                        id = if (product.isInCart)
-                                            R.drawable.cart   // иконка корзины
-                                        else
-                                            R.drawable.add    // иконка "+"
-                                    ),
-                                    contentDescription = if (product.isInCart)
-                                        "В корзине"
-                                    else
-                                        "Добавить в корзину",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(18.dp)
-                                )
-                            }
-                        }
+                    // кнопка справа
+                    IconButton(
+                        onClick = onAddToCartClick,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .background(
+                                color = Color(0xFF03A9F4),
+                                shape = RoundedCornerShape(13.dp)
+                            )
+                    ) {
+                        Icon(
+                            painter = painterResource(
+                                id = if (product.isInCart)
+                                    R.drawable.cart   // иконка корзины
+                                else
+                                    R.drawable.add    // иконка "+"
+                            ),
+                            contentDescription = if (product.isInCart)
+                                "В корзине"
+                            else
+                                "Добавить в корзину",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
                 }
             }
         }
     }
-
-
+}

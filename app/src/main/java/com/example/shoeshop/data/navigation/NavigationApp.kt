@@ -175,7 +175,7 @@ fun NavigationApp(navController: NavHostController) {
                 onOrderClick = { orderId ->
                     navController.navigate("order_details/$orderId")
                 },
-                initialTab = 0   // стартовый таб когда просто заходим на home
+                initialTab = 0
             )
         }
 
@@ -233,9 +233,11 @@ fun NavigationApp(navController: NavHostController) {
             ProductDetailScreen(
                 productId = productId,
                 onBackClick = { navController.popBackStack() },
-                onAddToCart = { /* TODO */ },
+                onAddToCart = { product ->
+                    homeViewModel.toggleCart(product)      // ← обновляем флаг isInCart на Home
+                },
                 onToggleFavoriteInHome = { product ->
-                    homeViewModel.toggleFavorite(product)
+                    homeViewModel.toggleFavorite(product)  // уже было
                 }
             )
         }
@@ -257,14 +259,12 @@ fun NavigationApp(navController: NavHostController) {
         }
         composable(
             route = "order_details/{orderId}",
-            arguments = listOf(
-                navArgument("orderId") { type = NavType.LongType }
-            )
+            arguments = listOf(navArgument("orderId") { type = NavType.LongType })
         ) { backStackEntry ->
             val orderId = backStackEntry.arguments?.getLong("orderId") ?: 0L
             OrderDetailsScreen(
                 orderId = orderId,
-                onBackClick = { navController.popBackStack() }
+                onBackClick = { navController.popBackStack() } // важно: без navigate("home")
             )
         }
 
